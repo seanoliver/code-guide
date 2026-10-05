@@ -1330,13 +1330,13 @@ const toggleCallout = (i) => setCallout(i, !OPEN.has(i));
 let diffQueue = Promise.resolve();
 const toggleDiff = () => (diffQueue = diffQueue.then(applyDiffToggle));
 // Deleted lines fold shut (or open) in place; the relayout happens while they are collapsed, so nothing jumps.
-const FOLD_MS = 280;
+const foldMs = 280;
 const foldRows = (root, open) => {
   const rows = [...root.querySelectorAll('.row.del')];
   rows.forEach((r) => { r.style.transition = 'none'; if (open) { r.style.height = '0px'; r.style.opacity = '0'; } });
   void root.offsetWidth;
-  rows.forEach((r) => { r.style.transition = `height ${FOLD_MS}ms ease, opacity ${FOLD_MS}ms ease`; r.style.height = open ? '' : '0px'; r.style.opacity = open ? '' : '0'; });
-  return new Promise((res) => setTimeout(res, FOLD_MS));
+  rows.forEach((r) => { r.style.transition = `height ${foldMs}ms ease, opacity ${foldMs}ms ease`; r.style.height = open ? '' : '0px'; r.style.opacity = open ? '' : '0'; });
+  return new Promise((res) => setTimeout(res, foldMs));
 };
 async function applyDiffToggle() {
   diffOn = !diffOn;

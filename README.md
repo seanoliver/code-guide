@@ -30,7 +30,7 @@ Ask your agent for a guide to a PR, and you get one HTML file:
 "Make a code guide for PR #11"
 ```
 
-The demo above is PR #11 of [sealed.page](https://github.com/seanoliver/address-book), which sends a failed signup magic link back to `/signup` instead of `/login`. To try it, download [`docs/index.html`](docs/index.html) and open it in a browser.
+The demo above is PR #11 of [sealed.page](https://github.com/seanoliver/address-book), which sends a failed signup magic link back to `/signup` instead of `/login`. To try it, download [`code-guide-demo.html`](https://github.com/seanoliver/code-guide/releases/download/v1.0.0/code-guide-demo.html) and open it in a browser.
 
 ## System view
 
