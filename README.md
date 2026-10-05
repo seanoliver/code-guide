@@ -12,7 +12,6 @@
 <p align="center">
   <a href="docs/media/code-guide-launch.mp4"><b>▶ Watch the 44s video</b></a> &nbsp;·&nbsp;
   <a href="docs/media/sealed-motion.mp4">Captioned walkthrough</a> &nbsp;·&nbsp;
-  <a href="https://seanoliver.github.io/code-guide/"><b>Try the live demo</b></a> &nbsp;·&nbsp;
   <a href="#install"><b>Install</b></a>
 </p>
 
@@ -34,7 +33,7 @@ Ask your agent for a guide to a PR, and you get one HTML file:
   <img src="docs/media/framed-1-system.jpg" alt="A code-guide canvas for a real PR: folders as boxes, files as tiles, arrows for calls and HTTP requests" width="100%">
 </p>
 
-The demo above is PR #11 of [sealed.page](https://github.com/seanoliver/address-book), which sends a failed signup magic link back to `/signup` instead of `/login`. [Open it live](https://seanoliver.github.io/code-guide/) and zoom around.
+The demo above is PR #11 of [sealed.page](https://github.com/seanoliver/address-book), which sends a failed signup magic link back to `/signup` instead of `/login`. To try it, download [`docs/index.html`](docs/index.html) and open it in a browser.
 
 ## System view
 
