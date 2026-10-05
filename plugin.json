@@ -22,7 +22,7 @@
       "interface": {
         "displayName": "code-guide",
         "shortDescription": "Zoomable maps of PRs and code",
-        "longDescription": "Ask Codex for a guide to a pull request, or to how part of a codebase works, and get one HTML file you can zoom from folders down to lines. It shows every file involved and how they connect, with callouts beside the lines that matter, a merged diff in PR mode, and a guided tour. The model writes a JSON spec; a fixed build script checks every referenced line against git and fails on any line it can't find.",
+        "longDescription": "Ask Codex for a guide to a pull request, or to how part of a codebase works, and get an interactive, canvas-style map of your code that zooms from folders down to individual lines. It shows every file involved and how they connect, with callouts beside the lines that matter, a merged diff in PR mode, and a guided tour. The model writes a JSON spec; a fixed build script checks every referenced line against git and fails on any line it can't find.",
         "developerName": "Sean Oliver",
         "websiteURL": "https://github.com/seanoliver/code-guide",
         "privacyPolicyURL": "https://github.com/seanoliver/code-guide#data-and-privacy",
