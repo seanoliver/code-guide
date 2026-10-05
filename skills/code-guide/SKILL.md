@@ -42,7 +42,7 @@ This skill produces one self-contained HTML canvas that explains a problem space
    - Write 4–9 tour steps in reading order. Each step focuses on one line and lists the links it crosses.
    - Build `areas` from the real directory structure, with the repo at the top level and folders nested inside.
 4. **Build:** `python3 <skill-dir>/build.py <guide.json> -o <out.html>`, where `<skill-dir>` is this skill's folder (`${CLAUDE_SKILL_DIR}` in Claude Code). If it reports errors, fix the spec and rebuild. Never edit the generated HTML.
-5. **Verify in a browser.** Serve the output directory over http (`python3 -m http.server`) and open it with whatever browser automation you have (a Playwright MCP, or a headless Chromium script that waits for `window.__guide`). If you have none, open the file and ask the user to confirm. Check:
+5. **Verify in a browser.** Serve the output directory over http (`python3 -m http.server --bind 127.0.0.1`) and open it with whatever browser automation you have (a Playwright MCP, or a headless Chromium script that waits for `window.__guide`). If you have none, open the file and ask the user to confirm. Check:
    - The console is clean.
    - Fit shows every area.
    - One tour step lands on its line.

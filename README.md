@@ -142,7 +142,7 @@ The plugin ships no hooks, binaries, or MCP servers. The skill has your agent ru
 - `git fetch` and `git worktree add --detach`, to read the code without touching your checkout, then `git worktree remove` when done
 - `gh pr view`, in PR mode, to read the PR description
 - `python3 build.py`, to resolve anchors, compute the diff, and write `guide.html`
-- `python3 -m http.server`, to serve the guide locally for the browser check
+- `python3 -m http.server --bind 127.0.0.1`, to serve the guide locally for the browser check
 
 ## Limits
 
