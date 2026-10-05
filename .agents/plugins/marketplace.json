@@ -1,0 +1,11 @@
+{
+  "name": "code-guide",
+  "interface": { "displayName": "code-guide" },
+  "plugins": [
+    {
+      "name": "code-guide",
+      "source": { "source": "local", "path": "./" },
+      "policy": { "installation": "AVAILABLE" }
+    }
+  ]
+}

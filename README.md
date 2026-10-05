@@ -18,6 +18,7 @@
 <p align="center">
   <img alt="Agent Skill" src="https://img.shields.io/badge/Agent%20Skill-SKILL.md-7ee787?style=flat-square">
   <img alt="Claude Code plugin" src="https://img.shields.io/badge/Claude%20Code-plugin-c084fc?style=flat-square">
+  <img alt="Codex plugin" src="https://img.shields.io/badge/Codex-plugin-f5a524?style=flat-square">
   <img alt="MIT license" src="https://img.shields.io/badge/license-MIT-5aa9ff?style=flat-square">
 </p>
 
@@ -88,6 +89,13 @@ Every guide includes a 4–9 step tour in reading order. Each step zooms to one 
 ```
 /plugin marketplace add seanoliver/code-guide
 /plugin install code-guide@code-guide
+```
+
+**Codex**
+
+```
+codex plugin marketplace add seanoliver/code-guide
+codex plugin add code-guide@code-guide
 ```
 
 **Other agents**: copy `skills/code-guide/` into any agent's skills folder that loads `SKILL.md` skills.
