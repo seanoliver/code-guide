@@ -261,7 +261,7 @@ if (typeof ELK === 'undefined') return fail('elkjs failed to load from the CDN (
 // ---------------------------------------------------------------- taxonomy
 const ROLES = ['core', 'supporting', 'plumbing', 'contract', 'test'];
 const ROLE_PRI = { core: 5, contract: 4, supporting: 3, test: 2, plumbing: 1 };
-const DEFS = {
+const roleDefs = {
   core: 'does the thing being asked about',
   supporting: 'changes how the core path runs',
   plumbing: 'passes things along, no logic of its own',
@@ -379,7 +379,7 @@ const zoomOf = () => cam.s * K[level || 'far'];
 const levelForZ = (z) => (z < Z.mid ? 'far' : z < Z.near ? 'mid' : 'near');
 const FIT = { min: 0.9, max: 1.0 };
 const cfg = (lvl) => LV[lvl];
-const TILE_R = 6;  // keep in sync with .tile / .lvl-far .ext border-radius
+const tileR = 6;  // keep in sync with .tile / .lvl-far .ext border-radius
 
 // ---------------------------------------------------------------- unit builders
 function stripHTML(e) {
@@ -749,7 +749,7 @@ function paint(lvl) {
     const d = document.createElement('div');
     d.className = 'area depth-' + Math.min(a.depth, 2); d.dataset.area = a.id;
     // System: each box's corner radius = its child's radius + the padding between them, so nested corners never cross
-    const rad = lvl === 'far' ? `;border-radius:${TILE_R + L.pad * a.levels}px` : '';
+    const rad = lvl === 'far' ? `;border-radius:${tileR + L.pad * a.levels}px` : '';
     d.style.cssText = `left:${r.x}px;top:${r.y}px;width:${r.w}px;height:${r.h}px;--c:${a.color}${rad}`;
     const [main, ...rest] = a.label.split(' (');
     const fs = L.labelFont;
@@ -1084,23 +1084,23 @@ function applyFocus() {
 }
 
 // ---------------------------------------------------------------- tour
-const TOUR = G.tour || [];
+const tourSteps = G.tour || [];
 let step = -1;
 function renderTour() {
   const bar = $('#tour');
-  if (!TOUR.length) { bar.style.display = 'none'; return; }
+  if (!tourSteps.length) { bar.style.display = 'none'; return; }
   bar.classList.toggle('idle', step < 0);
-  $('#t-start').textContent = `▶ Start tour · ${TOUR.length} step${TOUR.length > 1 ? 's' : ''}`;
+  $('#t-start').textContent = `▶ Start tour · ${tourSteps.length} step${tourSteps.length > 1 ? 's' : ''}`;
   if (step < 0) return;
-  const t = TOUR[step];
-  $('#t-num').textContent = `${step + 1}/${TOUR.length}`;
+  const t = tourSteps[step];
+  $('#t-num').textContent = `${step + 1}/${tourSteps.length}`;
   $('#t-title').innerHTML = md(t.title); $('#t-body').innerHTML = md(t.body);
-  $('#t-prev').disabled = step === 0; $('#t-next').disabled = step === TOUR.length - 1;
+  $('#t-prev').disabled = step === 0; $('#t-next').disabled = step === tourSteps.length - 1;
 }
 function goStep(i) {
-  if (!TOUR.length) return;
-  step = clamp(i, 0, TOUR.length - 1);
-  const t = TOUR[step], fid = t.focus.file ?? t.focus.node, line = t.focus.line ?? null;
+  if (!tourSteps.length) return;
+  step = clamp(i, 0, tourSteps.length - 1);
+  const t = tourSteps[step], fid = t.focus.file ?? t.focus.node, line = t.focus.line ?? null;
   const hlsAtFocus = line ? HL.filter((h) => h.file === fid && h.from <= line && line <= h.to).map((h) => h.i) : [];
   tourFocus = focusFrom({ hls: hlsAtFocus, links: t.links || [], ents: [fid], lines: line ? [fid + ':' + line] : [] });
   pinnedFocus = null;
@@ -1130,8 +1130,8 @@ $('#legend-row').innerHTML = (usedRoles.length ? usedRoles : ROLES).map((r) => `
   '<span style="width:4px"></span>' +
   [['call', 'solid'], ['http', 'dashed'], ['data', 'solid']].filter(([k]) => LINKS.some((l) => l.kind === k))
     .map(([k, st]) => `<span><i class="ln2" style="border-color:var(--${k});border-top-style:${st}"></i>${k}</span>`).join('');
-$('#legend-defs').innerHTML = ROLES.map((r) => `<div><i class="sw" style="background:var(--${r})"></i><b>${r}</b>: ${DEFS[r]}</div>`).join('') +
-  ['gotcha', 'changed'].map((f) => `<div><span class="badge ${f}" style="font-size:10px">${f}</span> ${DEFS[f]}</div>`).join('') +
+$('#legend-defs').innerHTML = ROLES.map((r) => `<div><i class="sw" style="background:var(--${r})"></i><b>${r}</b>: ${roleDefs[r]}</div>`).join('') +
+  ['gotcha', 'changed'].map((f) => `<div><span class="badge ${f}" style="font-size:10px">${f}</span> ${roleDefs[f]}</div>`).join('') +
   '<div style="color:var(--dim)">Lines with no highlight are not involved.</div>' +
   '<div style="color:var(--dim)">System view: the thin bar along each tile\'s bottom is the whole file, start to end. Colored marks are its highlights; hover one for details.</div>';
 $('#hud-legend').addEventListener('click', () => $('#hud-legend').classList.toggle('open'));
@@ -1286,8 +1286,8 @@ addEventListener('keydown', (e) => {
   else if (e.key === '2') goLevel('mid');
   else if (e.key === '3') goLevel('near');
   else if (e.key === 'd' && hasDiff) toggleDiff();
-  else if (e.key === 'ArrowRight' && TOUR.length) goStep(step < 0 ? 0 : step + 1);
-  else if (e.key === 'ArrowLeft' && TOUR.length && step >= 0) goStep(step - 1);
+  else if (e.key === 'ArrowRight' && tourSteps.length) goStep(step < 0 ? 0 : step + 1);
+  else if (e.key === 'ArrowLeft' && tourSteps.length && step >= 0) goStep(step - 1);
   else if (e.key === 'Escape') { if (pinnedFocus) { pinnedFocus = null; applyFocus(); } else exitTour(); }
 });
 addEventListener('resize', apply);
