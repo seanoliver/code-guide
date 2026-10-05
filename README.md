@@ -131,7 +131,7 @@ Flags are `gotcha` (behaves differently from what a reader would assume) and `ch
 
 ## Data and privacy
 
-`code-guide` sends no telemetry and runs no server.
+`code-guide` sends no telemetry and runs no server. Full policy: [PRIVACY.md](PRIVACY.md).
 
 - `build.py` reads files from your local checkout and runs `git diff` locally. It makes no network requests.
 - The generated `guide.html` embeds the code it shows. When you open it, the browser loads elkjs from `cdn.jsdelivr.net` and highlight.js from `cdnjs.cloudflare.com`. Those requests fetch the libraries; no code or guide data is sent.

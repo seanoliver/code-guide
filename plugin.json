@@ -25,7 +25,7 @@
         "longDescription": "Ask Codex for a guide to a pull request, or to how part of a codebase works, and get an interactive, canvas-style map of your code that zooms from folders down to individual lines. It shows every file involved and how they connect, with callouts beside the lines that matter, a merged diff in PR mode, and a guided tour. The model writes a JSON spec; a fixed build script checks every referenced line against git and fails on any line it can't find.",
         "developerName": "Sean Oliver",
         "websiteURL": "https://github.com/seanoliver/code-guide",
-        "privacyPolicyURL": "https://github.com/seanoliver/code-guide#data-and-privacy",
+        "privacyPolicyURL": "https://github.com/seanoliver/code-guide/blob/main/PRIVACY.md",
         "defaultPrompt": [
           "Make a code guide for PR #482",
           "Show me how the checkout flow works as a code guide"
