@@ -52,12 +52,12 @@ The demo above is PR #11 of [sealed.page](https://github.com/seanoliver/address-
 
 ## Deterministic build
 
-**Every line is deterministically checked against git.** The model never draws the canvas or picks line numbers. It writes a `guide.json` that quotes a piece of each line it wants to point at. Then `build.py` reads the files from git, finds each quote with a plain string match, computes the diff, and lays out the graph.
+**Every line is deterministically checked against git.** The model never draws the canvas or picks line numbers. It writes a `guide.json` that quotes a piece of each line it wants to point at. Then `build.py` reads the files from git, finds each quote with a plain string match, computes the diff, and writes one HTML file. The browser lays out the graph with ELK when you open it.
 
 ```
 model ──writes──▶ guide.json ──build.py──▶ resolves every quote against the file from git
                                            git diff base...HEAD → added and deleted lines
-                                           ELK auto-layout → one self-contained HTML file
+                                           → one self-contained HTML file (ELK lays it out in the browser)
 ```
 
 A quote that matches nothing, or matches more than one line, fails the build. A callout can't point at the wrong line.
