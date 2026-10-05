@@ -30,9 +30,11 @@
           "Make a code guide for PR #482",
           "Show me how the checkout flow works as a code guide"
         ],
-        "brandColor": "#7EE787",
+        "brandColor": "#2DA44E",
         "composerIcon": "./assets/icon.png",
-        "logo": "./assets/icon.png"
+        "logo": "./assets/icon.png",
+        "category": "Developer Tools",
+        "supportURL": "https://github.com/seanoliver/code-guide/issues"
       }
     }
   }
