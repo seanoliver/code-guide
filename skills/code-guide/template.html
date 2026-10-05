@@ -1,0 +1,1365 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Code guide</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/elkjs@0.11.1/lib/elk.bundled.js"></script>
+<style>
+  :root {
+    --bg: #0b0e13; --panel: #11161d; --line: #232b36; --text: #d7dde5; --dim: #7d8794;
+    --core: #3ecf8e; --supporting: #a78bfa; --plumbing: #7b8494; --contract: #22d3ee; --test: #f472b6;
+    --gotcha: #f5a524; --changed: #2ea043; --removed: #f85149;
+    --call: #aab4c0; --http: #5aa9ff; --data: #c084fc; --ext: #f5a524;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); font-family: var(--sans); overflow: hidden; }
+  #vp { position: fixed; inset: 0; overflow: hidden; cursor: grab; user-select: none;
+    background-image: radial-gradient(circle, rgba(255,255,255,.07) 1px, transparent 1.2px); }
+  #vp.panning { cursor: grabbing; }
+  #world { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+  .lvl { position: absolute; left: 0; top: 0; }
+  .lvl > div, .lvl > svg { position: absolute; left: 0; top: 0; }
+  .lvl > svg { overflow: visible; }
+  .lvl.hidden { display: none; }
+  #measure { position: absolute; left: -100000px; top: 0; visibility: hidden; }
+  .flip { transition: transform .38s cubic-bezier(.3,.7,.2,1), opacity .38s; }
+  .fade-in { animation: fadein .45s ease-out; }
+  @keyframes fadein { from { opacity: 0; } to { opacity: 1; } }
+
+  /* areas */
+  .area { position: absolute; border: 2px solid color-mix(in srgb, var(--c) 35%, transparent);
+    background: color-mix(in srgb, var(--c) 4%, transparent); border-radius: 28px; transform-origin: 0 0; }
+  .area.depth-0 { border-width: 3px; background: color-mix(in srgb, var(--c) 3%, transparent); }
+  .area.depth-2 { border-style: dashed; background: transparent; }
+  .area-label { position: absolute; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: color-mix(in srgb, var(--c) 80%, white); font-weight: 600; }
+  .area-label small { color: var(--dim); font-weight: 400; margin-left: .5em; }
+
+  /* units + cards */
+  .unit { position: absolute; transform-origin: 0 0; }
+  .card { position: absolute; left: 0; top: 0; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,.45); }
+  .unit:hover > .card { border-color: #3a4554; }
+  .repo { font-family: var(--mono); border-radius: 6px; padding: .1em .45em; font-weight: 600; color: var(--rc); background: color-mix(in srgb, var(--rc) 14%, transparent); }
+
+  /* System tiles: drawn at screen scale (1 world px = 1 screen px at 100%) */
+  .tile { position: relative; padding: 8px 21px 8px 10px; border-left: 3px solid var(--rc); border-radius: 6px; }
+  .tile .t-name { font-family: var(--mono); font-size: 13px; font-weight: 700; line-height: 17px; white-space: nowrap; overflow: hidden; color: #eef2f6; }
+  .tile .t-role { font-size: 12.5px; line-height: 16px; color: #c4ccd6; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  .tile .t-meta { font-size: 12px; line-height: 16px; color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tile .t-meta .plus { color: #7ee787; }
+  /* file map: top of the strip = top of the file */
+  .strip { position: absolute; right: 8px; top: 7px; bottom: 7px; width: 6px; border-radius: 3px; background: rgba(255,255,255,.08); }
+  .strip i { position: absolute; left: 0; right: 0; border-radius: 2px; min-height: 3px; cursor: pointer; background: var(--rc); }
+  .strip i.f-gotcha { background: repeating-linear-gradient(180deg, var(--gotcha) 0 3px, var(--rc) 3px 6px); }
+  .strip i:hover { outline: 2px solid #fff; z-index: 1; }
+  .strip b { position: absolute; left: -5px; width: 2px; background: var(--changed); min-height: 2px; }
+  .ext { padding: 26px 28px; border-color: rgba(245,165,36,.5); background: linear-gradient(180deg, #1a150c, var(--panel)); }
+  .ext h3 { margin: 0 0 .4em; color: var(--ext); font-family: var(--mono); }
+  .ext p { margin: 0; color: #b9c2cd; line-height: 1.35; }
+  .ext .kind { color: var(--dim); text-transform: uppercase; letter-spacing: .1em; font-weight: 700; }
+  .lvl-far .ext { padding: 8px 10px; border-style: dashed; border-radius: 6px; } .lvl-far .ext h3 { font-size: 13px; line-height: 17px; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .lvl-far .ext p { font-size: 12.5px; line-height: 16px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .lvl-mid .ext h3 { font-size: 34px; } .lvl-mid .ext p { font-size: 21px; } .lvl-mid .ext .kind { font-size: 18px; }
+  .lvl-near .ext h3 { font-size: 20px; } .lvl-near .ext p { font-size: 13px; } .lvl-near .ext .kind { font-size: 10px; }
+
+  /* code cards */
+  .chead { display: flex; align-items: center; gap: .8em; border-bottom: 1px solid var(--line); background: #0e131a; }
+  .chead .path { font-family: var(--mono); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; }
+  .chead .path .dir { color: var(--dim); }
+  .chead .lc { color: var(--dim); font-family: var(--mono); white-space: nowrap; }
+  .chead .plus { color: #7ee787; font-family: var(--mono); }
+  .frole { color: #aab3bf; border-bottom: 1px solid var(--line); }
+  .lvl-mid .chead { font-size: 21px; padding: 16px 22px; } .lvl-mid .frole { font-size: 18px; padding: 10px 22px; }
+  .lvl-near .chead { font-size: 13px; padding: 10px 14px; } .lvl-near .frole { font-size: 12.5px; padding: 7px 14px; }
+  .cbody { padding: 6px 0; }
+  .row, .fold { position: relative; display: flex; white-space: pre; font-family: var(--mono); }
+  .lvl-near .row, .lvl-near .fold { font-size: 12.5px; line-height: 20px; height: 20px; }
+  .lvl-mid .row, .lvl-mid .fold { font-size: 18px; line-height: 28px; height: 28px; }
+  .ln { color: #4a5563; text-align: right; flex: 0 0 auto; padding-right: 1.1em; }
+  .lvl-near .ln { width: 50px; } .lvl-mid .ln { width: 70px; }
+  .src { overflow: hidden; flex: 1; padding-left: .3em; }
+  .row.r::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--rc); }
+  .row.r { background: color-mix(in srgb, var(--rc) 10%, transparent); }
+  .row.r.f-gotcha::before { width: 4px; background: repeating-linear-gradient(180deg, var(--gotcha) 0 5px, var(--rc) 5px 10px); }
+  /* merged diff (PR mode, Diff on): deleted lines inline in red above what replaced them, added lines green */
+  .diff-on .row.chg { background: rgba(46,160,67,.14); }
+  .diff-on .row.chg .ln { color: #7ee787; background: rgba(46,160,67,.2); box-shadow: inset -3px 0 var(--changed); }
+  .row.del { background: rgba(248,81,73,.14); overflow: hidden; }
+  .row.del .ln { color: #ff9b95; background: rgba(248,81,73,.2); box-shadow: inset -3px 0 var(--removed); }
+  .row.del .src { opacity: .85; }
+  .diff-on .row .src::before { content: ' '; display: inline-block; width: 1.4ch; }
+  .diff-on .row.chg .src::before { content: '+'; color: #7ee787; }
+  .diff-on .row.del .src::before { content: '−'; color: #ff9b95; }
+  #diff.on { background: #233041; color: #fff; }
+  .fold { color: #5c6673; font-style: italic; background: repeating-linear-gradient(135deg, rgba(255,255,255,.025) 0 6px, transparent 6px 12px); }
+  .row.flash { animation: flash 1.6s ease-out; }
+  @keyframes flash { 0%,30% { background: rgba(90,169,255,.45); } 100% { } }
+  .chips { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); display: flex; gap: 4px; }
+  .chip { font-family: var(--sans); font-style: normal; border-radius: 999px; cursor: pointer; white-space: nowrap; border: 1px solid; background: #0d1219; }
+  .lvl-near .chip { font-size: 10.5px; padding: 0 7px; line-height: 15px; }
+  .lvl-mid .chip { font-size: 15px; padding: 0 9px; line-height: 22px; }
+  .chip.call { color: var(--call); border-color: rgba(170,180,192,.4); }
+  .chip.http { color: var(--http); border-color: rgba(90,169,255,.5); }
+  .chip.data { color: var(--data); border-color: rgba(192,132,252,.5); }
+  .chip:hover { background: #1b2430; }
+
+  /* callout bubbles (opaque, live inside the unit, never under an edge) */
+  .bubble { position: absolute; background: #141b24; border: 1px solid var(--line); border-left: 4px solid var(--rc); border-radius: 10px; box-shadow: 0 6px 24px rgba(0,0,0,.4); cursor: pointer; }
+  .bubble .kt { display: flex; gap: .5em; align-items: center; text-transform: uppercase; letter-spacing: .08em; color: var(--rc); font-weight: 700; }
+  /* inline code in prose (callouts, tour, TL;DR, roles) */
+  code { font-family: var(--mono); font-size: .9em; color: #e6edf3; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.06); border-radius: 4px; padding: 0 .3em; }
+  .badge { border-radius: 4px; padding: 0 .4em; letter-spacing: .04em; }
+  .badge.gotcha { color: #1a1205; background: var(--gotcha); }
+  .badge.changed { color: #04180a; background: #56d364; }
+  .bubble .bt { font-weight: 650; color: #eef2f6; }
+  .bubble .bb { color: #a7b0bc; }
+  .lvl-near .bubble { padding: 8px 11px; } .lvl-near .bubble .kt { font-size: 9.5px; } .lvl-near .bubble .bt { font-size: 13px; margin: 2px 0 3px; } .lvl-near .bubble .bb { font-size: 12px; line-height: 1.45; }
+  /* Code view callouts: one-line title; the role, flags and body slide open below it */
+  .lvl-near .bubble { cursor: pointer; padding: 3px 10px; }
+  .lvl-near .bubble .bt { margin: 0; font-size: 12px; line-height: 18px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .lvl-near .bubble .bt .badge { margin-right: 5px; }
+  .lvl-near .bubble .car { display: inline-block; color: var(--dim); font-size: 10px; margin-right: 5px; transition: transform .2s ease; }
+  .lvl-near .bubble.open .car { transform: rotate(90deg); }
+  .lvl-near .bubble .more { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .2s ease; }
+  .lvl-near .bubble.open .more { grid-template-rows: 1fr; }
+  .lvl-near .bubble .more > .in { overflow: hidden; min-height: 0; }
+  .lvl-near .bubble .in .kt { padding-top: 4px; } .lvl-near .bubble .in .bb { padding-bottom: 4px; }
+  .lvl-near .bubble:hover { border-color: #3a4554; background: #18202b; }
+  .lvl-mid .bubble { padding: 12px 18px; } .lvl-mid .bubble .kt { font-size: 14px; } .lvl-mid .bubble .bt { font-size: 19px; margin-top: 3px; }
+  .usvg { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; }
+
+  /* edges */
+  .edge .vis { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+  .edge.call .vis { stroke: var(--call); } .edge.http .vis { stroke: var(--http); } .edge.data .vis { stroke: var(--data); }
+  .stub.call { stroke: var(--call); } .stub.http { stroke: var(--http); } .stub.data { stroke: var(--data); }
+  .edge .hit { fill: none; stroke: transparent; pointer-events: stroke; cursor: pointer; }
+  .edge:hover .vis { stroke: #fff; }
+  .elabel { position: absolute; white-space: nowrap; border-radius: 999px; border: 1px solid; background: #0d1219; cursor: pointer; font-family: var(--mono); box-shadow: 0 4px 14px rgba(0,0,0,.5); text-align: center; overflow: hidden; text-overflow: ellipsis; }
+  .elabel.call { color: var(--call); border-color: rgba(170,180,192,.45); }
+  .elabel.http { color: var(--http); border-color: rgba(90,169,255,.55); }
+  .elabel.data { color: var(--data); border-color: rgba(192,132,252,.55); }
+  .elabel:hover { background: #1b2430; }
+  .elabel { opacity: 0; pointer-events: none; transition: opacity .15s; }
+  .elabel.show, .focusing .elabel.glow { opacity: 1; pointer-events: auto; }
+
+  /* focus (TL;DR hover, tour step) */
+  .focusing .unit:not(.glow) { opacity: .22; }
+  .focusing .edge:not(.glow) { opacity: .1; }
+  .focusing .unit.glow .row:not(.glow), .focusing .unit.glow .bubble:not(.glow), .focusing .unit.glow .strip i:not(.glow) { opacity: .5; }
+  .unit, .edge, .bubble { transition: opacity .2s; }
+  .row { transition: opacity .2s, background .28s ease; }
+  .focusing .unit.glow > .card { border-color: #9fb3c8; box-shadow: 0 0 0 2px rgba(159,179,200,.35), 0 10px 40px rgba(0,0,0,.5); }
+  .row.glow { box-shadow: inset 0 0 0 1px rgba(255,255,255,.18); }
+  .bubble.glow { border-color: #9fb3c8; box-shadow: 0 0 0 2px rgba(159,179,200,.4), 0 6px 24px rgba(0,0,0,.5); }
+  .strip i.glow { outline: 2px solid #fff; }
+  .edge.glow .vis { filter: drop-shadow(0 0 6px currentColor); }
+  .edge.glow.call .vis { color: var(--call); } .edge.glow.http .vis { color: var(--http); } .edge.glow.data .vis { color: var(--data); }
+
+  /* HUD */
+  .hud { position: fixed; z-index: 10; background: rgba(17,22,29,.94); border: 1px solid var(--line); border-radius: 12px; backdrop-filter: blur(8px); }
+  #hud-info { left: 16px; top: 16px; width: 360px; max-height: calc(100vh - 220px); overflow: auto; padding: 14px 16px; font-size: 13px; }
+  #hud-info .tag { font-size: 10.5px; text-transform: uppercase; letter-spacing: .1em; color: var(--dim); padding-right: 30px; }
+  #hud-info h1 { font-size: 16px; margin: 4px 30px 6px 0; }
+  #hud-info .q { color: #aab3bf; margin: 0 0 8px; }
+  #hud-info ul { margin: 0; padding-left: 18px; color: #c4ccd6; line-height: 1.5; }
+  #hud-info li.refs { cursor: pointer; }
+  #hud-info li.refs .tx { text-decoration: underline dotted rgba(200,210,220,.45); text-underline-offset: 3px; }
+  #hud-info li.refs .cnt { color: var(--dim); font-family: var(--mono); font-size: 11px; white-space: nowrap; }
+  #hud-info li.refs:hover .tx { color: #fff; text-decoration-color: #fff; }
+  #hud-info .sub { color: var(--dim); font-size: 11px; margin-top: 8px; }
+  #hud-info.collapsed ul, #hud-info.collapsed .q, #hud-info.collapsed .sub { display: none; }
+  #collapse { position: absolute; right: 10px; top: 10px; }
+  #hud-zoom { right: 16px; top: 16px; display: flex; gap: 6px; padding: 6px; align-items: center; }
+  #hud-zoom .seg { display: flex; background: #0b0f14; border-radius: 8px; padding: 2px; }
+  #hud-zoom .seg button { border: 0; background: transparent; }
+  #hud-zoom .seg button.on { background: #233041; color: #fff; }
+  #pct { font-family: var(--mono); font-size: 12px; color: var(--dim); width: 46px; text-align: center; }
+  button { font: inherit; font-size: 12.5px; color: var(--text); background: #18202a; border: 1px solid var(--line); border-radius: 7px; padding: 5px 10px; cursor: pointer; }
+  button:hover:not(:disabled) { background: #222c38; }
+  button:disabled { opacity: .35; cursor: default; }
+  #hud-legend { left: 16px; bottom: 16px; padding: 10px 14px; font-size: 12px; max-width: 360px; }
+  #hud-legend .r { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  #hud-legend .sw { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
+  #hud-legend .ln2 { display: inline-block; width: 22px; height: 0; border-top: 2px solid; margin-right: 5px; vertical-align: 3px; }
+  #hud-legend .defs { display: none; margin: 8px 0 2px; line-height: 1.45; color: #b6bfca; }
+  #hud-legend .defs b { color: #eef2f6; font-weight: 600; }
+  #hud-legend .defs div { margin: 2px 0; }
+  #hud-legend:hover .defs, #hud-legend.open .defs { display: block; }
+  #hud-legend .hint { color: var(--dim); margin-top: 6px; }
+  #hud-mini { right: 16px; bottom: 16px; padding: 6px; }
+  #mini { display: block; cursor: pointer; }
+  #tour { left: 50%; transform: translateX(-50%); bottom: 16px; width: min(720px, calc(100vw - 680px)); min-width: 420px; display: flex; gap: 12px; align-items: center; padding: 10px 12px; }
+  #tour .num { font: 600 11px var(--mono); color: #f5d76e; white-space: nowrap; }
+  #tour .body { flex: 1; min-width: 0; font-size: 12.5px; color: #c4ccd6; }
+  #tour .body b { display: block; color: #fff; font-size: 13.5px; margin-bottom: 1px; }
+  #tour.idle .body, #tour.idle .num, #tour.idle #t-prev, #tour.idle #t-next, #tour.idle #t-exit { display: none; }
+  #tour:not(.idle) #t-start { display: none; }
+  #tour.idle { width: auto; min-width: 0; }
+  #tip { position: fixed; z-index: 20; pointer-events: none; background: #0d1219; border: 1px solid #3a4554; border-radius: 8px; padding: 8px 10px; font-size: 12px; max-width: 320px; box-shadow: 0 8px 28px rgba(0,0,0,.55); display: none; }
+  #tip .kt { text-transform: uppercase; letter-spacing: .08em; font-size: 10px; font-weight: 700; display: flex; gap: .5em; }
+  #tip .bt { font-weight: 650; color: #fff; margin: 2px 0; }
+  #tip .ln3 { color: var(--dim); font-family: var(--mono); font-size: 11px; }
+  #err { position: fixed; inset: 40px; z-index: 30; background: #1a0f10; border: 1px solid var(--removed); border-radius: 12px; padding: 20px; font-family: var(--mono); white-space: pre-wrap; display: none; }
+</style>
+</head>
+<body>
+<div id="vp"><div id="world"></div></div>
+<div id="measure"></div>
+
+<div id="hud-info" class="hud">
+  <div class="tag" id="tag">Code guide</div>
+  <h1 id="title"></h1>
+  <p class="q" id="question"></p>
+  <ul id="tldr"></ul>
+  <div class="sub" id="tldr-hint"></div>
+  <button id="collapse" title="Collapse / expand">–</button>
+</div>
+<div id="hud-zoom" class="hud">
+  <div class="seg"><button data-lvl="far" title="1">System</button><button data-lvl="mid" title="2">Snippets</button><button data-lvl="near" title="3">Code</button></div>
+  <span id="pct"></span>
+  <button id="diff" title="Show deleted and added lines (d)" style="display:none">Diff</button>
+  <button id="zout" title="Zoom out (-)">−</button><button id="zin" title="Zoom in (+)">+</button><button id="fit" title="Fit (0)">Fit</button>
+</div>
+<div id="hud-legend" class="hud">
+  <div class="r" id="legend-row"></div>
+  <div class="defs" id="legend-defs"></div>
+  <div class="hint">Hover for definitions · pinch or ⌘-scroll to zoom · drag or scroll to pan · double-click a card · click an edge or chip to jump</div>
+</div>
+<div id="hud-mini" class="hud"><canvas id="mini" width="240" height="150"></canvas></div>
+<div id="tour" class="hud idle">
+  <button id="t-start">▶ Start tour</button>
+  <button id="t-prev">←</button><span class="num" id="t-num"></span>
+  <div class="body"><b id="t-title"></b><span id="t-body"></span></div>
+  <button id="t-next">→</button><button id="t-exit" title="Exit tour (Esc)">✕</button>
+</div>
+<div id="tip"></div>
+<div id="err"></div>
+
+<script>/*__GUIDE_DATA__*/</script>
+<script>
+(async () => {
+const G = window.GUIDE;
+const $ = (s) => document.querySelector(s);
+const vp = $('#vp'), world = $('#world'), MEASURE = $('#measure');
+const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+// Prose fields mark code with backticks: `maskTextFn` renders as inline code; plain() drops the marks (tooltips, attributes)
+const md = (s) => esc(s).replace(/`([^`]+)`/g, '<code>$1</code>');
+const plain = (s) => String(s ?? '').replace(/`([^`]+)`/g, '$1');
+const base = (p) => p.split('/').pop();
+const dir = (p) => p.slice(0, p.length - base(p).length);
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const wbr = (s) => esc(s).replace(/([.\-_/])/g, '$1<wbr>').replace(/([a-z])([A-Z])/g, '$1<wbr>$2');
+const SVGNS = 'http://www.w3.org/2000/svg';
+const fail = (msg) => { const e = $('#err'); e.style.display = 'block'; e.textContent = 'code-guide renderer error:\n' + msg; };
+if (!G) return fail('window.GUIDE is missing. Build this file with build.py.');
+if (typeof ELK === 'undefined') return fail('elkjs failed to load from the CDN (needs network).');
+
+// ---------------------------------------------------------------- taxonomy
+const ROLES = ['core', 'supporting', 'plumbing', 'contract', 'test'];
+const ROLE_PRI = { core: 5, contract: 4, supporting: 3, test: 2, plumbing: 1 };
+const DEFS = {
+  core: 'does the thing being asked about',
+  supporting: 'changes how the core path runs',
+  plumbing: 'passes things along, no logic of its own',
+  contract: 'types, schemas, API shapes',
+  test: 'tests',
+  gotcha: 'behaves differently from what a reader would assume',
+  changed: 'touched by this PR',
+};
+const PALETTE = ['#3ecf8e', '#5aa9ff', '#c084fc', '#f472b6', '#22d3ee', '#fb923c'];
+
+// ---------------------------------------------------------------- data prep
+const isPR = G.meta.mode === 'pr';
+const hasDiff = isPR && G.files.some((f) => (f.changed || []).length || (f.removed || []).length);
+let diffOn = hasDiff;
+document.body.classList.toggle('diff-on', diffOn);
+const HL = G.highlights.map((h, i) => ({ ...h, i, flags: h.flags || [] }));
+const HL_BY_ID = Object.fromEntries(HL.filter((h) => h.id).map((h) => [h.id, h]));
+const LINKS = G.links.map((l) => ({ ...l,
+  a: { id: l.from.file ?? l.from.node, line: l.from.line ?? null },
+  b: { id: l.to.file ?? l.to.node, line: l.to.line ?? null } }));
+const LINK_BY_ID = Object.fromEntries(LINKS.map((l) => [l.id, l]));
+const repoColor = {};
+[...new Set(G.files.map((f) => f.repo))].forEach((r, i) => (repoColor[r] = PALETTE[i % PALETTE.length]));
+
+const EXT_LANG = { ts: 'typescript', tsx: 'typescript', mts: 'typescript', cts: 'typescript', js: 'javascript', jsx: 'javascript', mjs: 'javascript', cjs: 'javascript',
+  py: 'python', go: 'go', rb: 'ruby', rs: 'rust', sql: 'sql', json: 'json', yml: 'yaml', yaml: 'yaml', sh: 'bash', bash: 'bash', zsh: 'bash', css: 'css', scss: 'scss',
+  html: 'xml', xml: 'xml', vue: 'xml', md: 'markdown', java: 'java', kt: 'kotlin', swift: 'swift', c: 'c', h: 'c', cpp: 'cpp', cc: 'cpp', hpp: 'cpp', cs: 'csharp', php: 'php',
+  toml: 'ini', ini: 'ini', dockerfile: 'dockerfile', graphql: 'graphql', proto: 'protobuf', ex: 'elixir', exs: 'elixir', lua: 'lua', scala: 'scala', dart: 'dart' };
+
+const ENT = {};  // files and external nodes, by id
+const ORDER = [];
+for (const f of G.files) {
+  const lines = f.code.split('\n');
+  const e = { ...f, kind: 'file', lines, endLine: f.startLine + lines.length - 1,
+    hls: HL.filter((h) => h.file === f.id).sort((a, b) => a.from - b.from),
+    changedSet: new Set(f.changed || []), delAt: {} };
+  for (const r of f.removed || []) if (r.lines) e.delAt[r.after] = { oldStart: r.old_start, lines: r.lines };
+  e.roleAt = {}; e.hlsAt = {};
+  for (const h of e.hls) for (let n = h.from; n <= h.to; n++) {
+    (e.hlsAt[n] = e.hlsAt[n] || []).push(h);
+    const cur = e.roleAt[n];
+    if (!cur || ROLE_PRI[h.role] > ROLE_PRI[cur]) e.roleAt[n] = h.role;
+  }
+  const ext = (f.path.split('.').pop() || '').toLowerCase();
+  e.lang = EXT_LANG[base(f.path).toLowerCase() === 'dockerfile' ? 'dockerfile' : ext];
+  ENT[f.id] = e; ORDER.push(f.id);
+}
+for (const n of G.nodes || []) { ENT[n.id] = { ...n, kind: 'node', hls: [] }; ORDER.push(n.id); }
+for (const e of Object.values(ENT)) {
+  e.out = LINKS.filter((l) => l.a.id === e.id);
+  e.inc = LINKS.filter((l) => l.b.id === e.id);
+}
+const entLabel = (id, line) => { const e = ENT[id]; if (!e) return id; return e.kind === 'node' ? e.label : line ? `${base(e.path)}:${line}` : base(e.path); };
+
+// areas: depth + color (by top-level index; external areas use the external color)
+const AREAS = [];
+const placed = new Set();
+function prepArea(a, depth, color) {
+  const col = a.external ? 'var(--ext)' : color;
+  const ar = { id: a.id, label: a.label, depth, color: col, files: (a.files || []).filter((id) => ENT[id]), children: [] };
+  ar.files.forEach((id) => placed.add(id));
+  ar.children = (a.children || []).map((c) => prepArea(c, depth + 1, col));
+  ar.levels = 1 + Math.max(0, ...ar.children.map((c) => c.levels));  // nesting below this area, for concentric corners
+  AREAS.push(ar);
+  return ar;
+}
+const ROOT_AREAS = (G.areas || []).map((a, i) => prepArea(a, 0, PALETTE[i % PALETTE.length]));
+const LOOSE = ORDER.filter((id) => !placed.has(id));
+
+// lazy syntax highlighting (once per file, cached)
+function splitLines(html) {
+  const out = []; const stack = []; let cur = '';
+  const re = /(<span[^>]*>)|(<\/span>)|([^<]+)/g; let m;
+  while ((m = re.exec(html))) {
+    if (m[1]) { stack.push(m[1]); cur += m[1]; }
+    else if (m[2]) { stack.pop(); cur += '</span>'; }
+    else m[3].split('\n').forEach((p, i) => {
+      if (i > 0) { cur += '</span>'.repeat(stack.length); out.push(cur); cur = stack.join(''); }
+      cur += p;
+    });
+  }
+  cur += '</span>'.repeat(stack.length); out.push(cur);
+  return out;
+}
+function delLines(e, n) {
+  const d = e.delAt[n];
+  if (!d.hl) {
+    try { d.hl = splitLines(hljs.highlight(d.lines.join('\n'), { language: e.lang && hljs.getLanguage(e.lang) ? e.lang : 'plaintext', ignoreIllegals: true }).value); }
+    catch { d.hl = d.lines.map(esc); }
+  }
+  return d.hl;
+}
+function hlLines(e) {
+  if (e.hl) return e.hl;
+  try {
+    const r = e.lang && hljs.getLanguage(e.lang) ? hljs.highlight(e.code, { language: e.lang, ignoreIllegals: true }) : hljs.highlightAuto(e.code);
+    e.hl = splitLines(r.value);
+  } catch { e.hl = e.lines.map(esc); }
+  return e.hl;
+}
+
+// ---------------------------------------------------------------- level config
+const LV = {
+  far:  { pad: 7, label: 26, labelX: 10, labelFont: 12.5, nodeGap: 18, layerGap: 18, edgeW: 1.4, elFont: 12, elPadX: 6, elH: 18, tileW: 208 },
+  mid:  { pad: 50, label: 64, labelFont: 28, nodeGap: 110, layerGap: 240, edgeW: 4, elFont: 17, elPadX: 12, elH: 28, cardW: 1300, gutter: 470, bubGap: 46, rowH: 28 },
+  near: { pad: 36, label: 40, labelFont: 17, nodeGap: 80, layerGap: 170, edgeW: 2, elFont: 11, elPadX: 8, elH: 18, cardW: 1000, gutter: 340, bubGap: 30, rowH: 20 },
+};
+// Zoom z is continuous across levels: z = cam.s * K[level], where cam.s is in the current level's own units.
+// System is drawn at screen scale (z = 1 is 100%). Snippets starts at z = 1.3 where its code is ~10.8px;
+// Code starts at z = 1.8 (Snippets code ~15px) where its code is ~11.25px. Narrow bands keep text from ballooning.
+const Z = { mid: 1.3, near: 1.8, min: 0.25 };
+const K = { far: 1, mid: Z.mid / 0.6, near: Z.near / 0.9 };
+const RANGE = { far: [Z.min, Z.mid / K.far - 1e-3], mid: [Z.mid / K.mid, Z.near / K.mid - 1e-3], near: [Z.near / K.near, 2.5] };
+const zoomOf = () => cam.s * K[level || 'far'];
+const levelForZ = (z) => (z < Z.mid ? 'far' : z < Z.near ? 'mid' : 'near');
+const FIT = { min: 0.9, max: 1.0 };
+const cfg = (lvl) => LV[lvl];
+const TILE_R = 6;  // keep in sync with .tile / .lvl-far .ext border-radius
+
+// ---------------------------------------------------------------- unit builders
+function stripHTML(e) {
+  const total = e.lines.length;
+  let s = '';
+  for (const h of e.hls) {
+    const at = ((h.from - e.startLine) / total) * 100, len = ((h.to - h.from + 1) / total) * 100;
+    s += `<i data-hl="${h.i}" class="${h.flags.map((f) => 'f-' + f).join(' ')}" style="top:${at}%;height:${len}%;--rc:var(--${h.role})"></i>`;
+  }
+  for (const n of e.changedSet) s += `<b style="top:${((n - e.startLine) / total) * 100}%;height:${100 / total}%"></b>`;
+  return `<div class="strip">${s}</div>`;
+}
+function nodeCard(e, lvl) {
+  const el = document.createElement('div');
+  el.className = 'card ext';
+  el.style.width = (lvl === 'far' ? LV.far.tileW : lvl === 'mid' ? 620 : 420) + 'px';
+  el.innerHTML = (lvl === 'far' ? '' : '<div class="kind">external</div>') + `<h3>${esc(e.label)}</h3><p>${md(e.role || '')}</p>` +
+    (lvl === 'far' ? '' : e.inc.map((l) => `<p style="margin-top:.6em"><span class="chip ${l.kind}" data-link="${l.id}" data-end="a">← ${esc(entLabel(l.a.id, l.a.line))} · ${esc(l.label)}</span></p>`).join(''));
+  return el;
+}
+// one-line filename: keep the extension, cut the middle
+function midEllipsis(name, max) {
+  if (name.length <= max) return name;
+  const dot = name.lastIndexOf('.'), ext = dot > 0 && name.length - dot <= 6 ? name.slice(dot) : '';
+  const stem = name.slice(0, name.length - ext.length), keep = max - ext.length - 1;
+  const head = Math.ceil(keep * 0.6), tail = keep - head;
+  return stem.slice(0, head) + '…' + stem.slice(stem.length - tail) + ext;
+}
+function tileCard(e) {
+  const el = document.createElement('div');
+  el.className = 'card tile';
+  el.style.width = LV.far.tileW + 'px';
+  el.style.setProperty('--rc', repoColor[e.repo]);
+  el.title = `${e.repo}: ${e.path}`;
+  const maxChars = Math.floor((LV.far.tileW - 34) / (13 * 0.6));
+  const n = e.hls.length;
+  el.innerHTML = `
+    <div class="t-name">${esc(midEllipsis(base(e.path), maxChars))}</div>
+    <div class="t-role">${md(e.role)}</div>
+    <div class="t-meta">${n} callout${n === 1 ? '' : 's'}${e.changedSet.size ? ` · <span class="plus">+${e.changedSet.size}</span>` : ''}</div>
+    ${stripHTML(e)}`;
+  return el;
+}
+function chipsFor(e, n) {
+  const out = e.out.filter((l) => l.a.line === n).map((l) =>
+    `<span class="chip ${l.kind}" data-link="${l.id}" data-end="b">→ ${esc(entLabel(l.b.id, l.b.line))} · ${esc(l.label)}</span>`);
+  const inc = e.inc.filter((l) => l.b.line === n).map((l) =>
+    `<span class="chip ${l.kind}" data-link="${l.id}" data-end="a">← ${esc(entLabel(l.a.id, l.a.line))}</span>`);
+  const all = out.concat(inc);
+  return all.length ? `<span class="chips">${all.join('')}</span>` : '';
+}
+function codeCard(e, lvl) {
+  const L = LV[lvl];
+  const el = document.createElement('div');
+  el.className = 'card code';
+  el.style.width = L.cardW + 'px';
+  const show = new Set();
+  if (lvl === 'near') for (let n = e.startLine; n <= e.endLine; n++) show.add(n);
+  else {
+    for (const h of e.hls) for (let n = h.from; n <= h.to; n++) show.add(n);
+    for (const l of e.out) if (l.a.line) show.add(l.a.line);
+    for (const l of e.inc) if (l.b.line) show.add(l.b.line);
+    for (const n of e.changedSet) show.add(n);
+    if (diffOn) for (const n in e.delAt) { show.add(+n); show.add(+n + 1); }  // keep a deletion's neighbours visible
+  }
+  let html = '', foldFrom = null;
+  const flush = (to) => {
+    if (foldFrom == null) return;
+    const c = to - foldFrom + 1;
+    html += `<div class="fold" data-from="${foldFrom}" data-to="${to}"><span class="ln">⋯</span><span class="src">${c} line${c > 1 ? 's' : ''} folded</span></div>`;
+    foldFrom = null;
+  };
+  // deleted lines that sat after new line n; numbered by their old line numbers
+  const delRows = (n) => {
+    const d = diffOn && e.delAt[n];
+    return d ? d.lines.map((t, k) => `<div class="row del" data-del="${n}:${k}"><span class="ln">${d.oldStart + k}</span><span class="src">${esc(t) || ' '}</span></div>`).join('') : '';
+  };
+  for (let n = e.startLine; n <= e.endLine; n++) {
+    if (!show.has(n)) { if (foldFrom == null) foldFrom = n; continue; }
+    flush(n - 1);
+    html += delRows(n - 1);
+    const role = e.roleAt[n], hs = e.hlsAt[n] || [];
+    const flags = [...new Set(hs.flatMap((h) => h.flags))];
+    const cls = ['row', role ? 'r' : '', ...flags.map((f) => 'f-' + f), e.changedSet.has(n) ? 'chg' : ''].filter(Boolean).join(' ');
+    html += `<div class="${cls}" data-line="${n}"${hs.length ? ` data-hls="${hs.map((h) => h.i).join(' ')}"` : ''}${role ? ` style="--rc:var(--${role})"` : ''}>` +
+      `<span class="ln">${n}</span><span class="src">${esc(e.lines[n - e.startLine]) || ' '}</span>${chipsFor(e, n)}</div>` +
+      (show.has(n + 1) ? '' : delRows(n));
+  }
+  flush(e.endLine);
+  const range = e.startLine === 1 && e.endLine === e.totalLines ? `${e.totalLines} lines` : `L${e.startLine}–${e.endLine} of ${e.totalLines}`;
+  el.innerHTML = `<div class="chead"><span class="repo" style="--rc:${repoColor[e.repo]}">${esc(e.repo)}</span><span class="path"><span class="dir">${esc(dir(e.path))}</span><b>${esc(base(e.path))}</b></span>` +
+    `${e.changedSet.size ? `<span class="plus">+${e.changedSet.size}</span>` : ''}<span class="lc">${range}</span></div>
+    <div class="frole">${md(e.role)}</div><div class="cbody">${html}</div>`;
+  return el;
+}
+// Code view callouts start collapsed to one line (title only) so they stay beside their line.
+// Clicking one opens it; it stays open until clicked again.
+const OPEN = new Set();
+function bubbleHTML(h, lvl) {
+  const badges = h.flags.map((f) => `<span class="badge ${f}">${f}</span>`).join('');
+  if (lvl !== 'near') return `<div class="kt">${h.role}${badges}</div><div class="bt">${md(h.title)}</div>`;
+  const gotcha = h.flags.includes('gotcha') ? '<span class="badge gotcha">!</span>' : '';
+  return `<div class="bt" title="${esc(plain(h.title))}"><span class="car">▸</span>${gotcha}${md(h.title)}</div>` +
+    `<div class="more"><div class="in"><div class="kt">${h.role}${badges}</div>${h.body ? `<div class="bb">${md(h.body)}</div>` : ''}</div></div>`;
+}
+
+// Stack a unit's callouts top-down beside their anchor lines, clear of outgoing edge stubs.
+// heights[k] is bubble k's height; sets b.top and returns the bottom of the stack.
+function stackBubbles(g, lvl, heights) {
+  let last = -Infinity;
+  g.bubbles.forEach((b, k) => {
+    const bh = heights[k];
+    let top = Math.max(b.anchor - b.yc, last + (lvl === 'near' ? 4 : 10));
+    for (let guard = 0; guard < 50; guard++) {
+      const hit = g.bands.find((y) => y + 7 > top && y - 7 < top + bh);
+      if (hit === undefined) break;
+      top = hit + 9;
+    }
+    b.top = top; last = top + bh;
+  });
+  return last;
+}
+const connD = (g, L, b, top) => {
+  const x1 = g.cw, y1 = b.anchor, x2 = g.cw + L.bubGap, y2 = top + b.yc;
+  return `M${x1},${y1} C${x1 + L.bubGap * 0.6},${y1} ${x2 - L.bubGap * 0.4},${y2} ${x2},${y2}`;
+};
+
+// Build one level's units into a container and measure them. Returns geometry per unit.
+function buildUnits(lvl, container) {
+  const L = LV[lvl];
+  const units = {};
+  for (const id of ORDER) {
+    const e = ENT[id];
+    const u = document.createElement('div');
+    u.className = 'unit'; u.dataset.ent = id;
+    const card = lvl === 'far' ? (e.kind === 'node' ? nodeCard(e, lvl) : tileCard(e)) : e.kind === 'node' ? nodeCard(e, lvl) : codeCard(e, lvl);
+    u.appendChild(card);
+    container.appendChild(u);
+    const g = { id, el: u, card, cw: card.offsetWidth, ch: card.offsetHeight, rows: null, bubbles: [], outPorts: [], inPorts: [] };
+    g.w = g.cw; g.h = g.ch;
+    if (lvl !== 'far' && e.kind === 'file') {
+      const top0 = card.getBoundingClientRect().top;
+      g.rows = [...card.querySelectorAll('.row[data-line],.fold')].map((r) => ({
+        line: +r.dataset.line || 0, from: +r.dataset.from || 0, to: +r.dataset.to || 0, y: r.getBoundingClientRect().top - top0, h: r.offsetHeight }));
+      // outgoing port rows: bubbles must leave these y-bands clear so edge stubs never pass under a bubble
+      const bands = [];
+      e.out.forEach((l) => { const y = rowY(g, l.a.line); g.outPorts.push({ link: l.id, y }); bands.push(y); });
+      e.inc.forEach((l) => g.inPorts.push({ link: l.id, y: rowY(g, l.b.line) }));
+      const hasGutter = e.hls.length > 0 || e.out.length > 0;
+      g.w = g.cw + (hasGutter ? L.gutter : 0);
+      let last = -Infinity;
+      for (const h of e.hls) {
+        const b = document.createElement('div');
+        b.className = 'bubble' + (lvl === 'near' && OPEN.has(h.i) ? ' open' : ''); b.dataset.hl = h.i; b.style.setProperty('--rc', `var(--${h.role})`);
+        b.style.left = g.cw + L.bubGap + 'px';
+        b.style.width = L.gutter - L.bubGap - 18 + 'px';
+        b.innerHTML = bubbleHTML(h, lvl);
+        u.appendChild(b);
+        const bt = b.querySelector('.bt'), inn = b.querySelector('.in');
+        const bh = b.offsetHeight, hc = bh - (inn && OPEN.has(h.i) ? inn.offsetHeight : 0);
+        g.bubbles.push({ h, anchor: rowY(g, h.from), bh, hc, yc: lvl === 'near' ? bt.offsetTop + bt.offsetHeight / 2 : 22, el: b });
+      }
+      g.bands = bands;
+      last = stackBubbles(g, lvl, g.bubbles.map((b) => b.bh));
+      g.bubbles.forEach((b) => (b.el.style.top = b.top + 'px'));
+      g.h = Math.max(g.ch, last + 6);
+      // unit-local svg: callout connectors + outgoing stubs across the gutter to the port
+      const s = document.createElementNS(SVGNS, 'svg');
+      s.setAttribute('class', 'usvg'); s.setAttribute('width', g.w); s.setAttribute('height', g.h);
+      let inner = '';
+      for (const b of g.bubbles) {
+        inner += `<path class="conn" data-hl="${b.h.i}" d="${connD(g, L, b, b.top)}" fill="none" stroke="var(--${b.h.role})" stroke-width="${L.edgeW * 0.8}" opacity=".75"/>` +
+          `<circle cx="${g.cw}" cy="${b.anchor}" r="${L.edgeW * 1.6}" fill="var(--${b.h.role})"/>`;
+      }
+      e.out.forEach((l, k) => {
+        const y = g.outPorts[k].y;
+        inner += `<path class="stub ${l.kind}" data-links="${l.id}" d="M${g.cw},${y} L${g.w},${y}" stroke-width="${L.edgeW}" ${l.kind === 'http' ? `stroke-dasharray="${L.edgeW * 3.5} ${L.edgeW * 2.5}"` : ''} fill="none"/>`;
+      });
+      s.innerHTML = inner;
+      u.insertBefore(s, u.firstChild);
+    }
+    u.style.width = g.w + 'px'; u.style.height = g.h + 'px';
+    units[id] = g;
+  }
+  return units;
+}
+function rowY(g, n) {
+  if (!g || !g.rows || !n) return g ? g.h / 2 : 0;
+  for (const r of g.rows) {
+    if (r.line === n) return r.y + r.h / 2;
+    if (r.from && n >= r.from && n <= r.to) return r.y + r.h / 2;
+  }
+  return g.ch / 2;
+}
+
+// ---------------------------------------------------------------- ELK layout
+const elk = new ELK();
+function labelSize(text, L) { return { width: Math.ceil(text.length * L.elFont * 0.62 + 2 * L.elPadX + 4), height: L.elH }; }  // +4: border + rounding
+// System level keeps labels short so they don't eat the layer gaps: "GET /a/b/c" -> "GET …/c"
+function shortLabel(t) {
+  if (!t || t.length <= 22) return t;
+  const m = t.match(/^(\S+\s+)?(\S*\/)([^/\s]+)\/?$/);
+  if (m) return `${m[1] || ''}…/${m[3]}`.slice(0, 26);
+  return t.slice(0, 21) + '…';
+}
+function edgeGroups(lvl) {
+  if (lvl === 'far') {
+    const m = new Map();
+    for (const l of LINKS) {
+      if (l.a.id === l.b.id || !ENT[l.a.id] || !ENT[l.b.id]) continue;
+      const k = l.a.id + '>' + l.b.id;
+      if (!m.has(k)) m.set(k, { a: l.a.id, b: l.b.id, links: [] });
+      m.get(k).links.push(l);
+    }
+    return [...m.values()].map((g, i) => ({ id: 'g' + i, a: g.a, b: g.b, links: g.links, kind: g.links[0].kind,
+      labels: [...new Set(g.links.map((l) => shortLabel(l.label)))].filter(Boolean) }));
+  }
+  return LINKS.filter((l) => ENT[l.a.id] && ENT[l.b.id]).map((l) => ({ id: l.id, a: l.a.id, b: l.b.id, links: [l], kind: l.kind, labels: l.label ? [l.label] : [] }));
+}
+// rev: link ids laid out target→source so back edges route forward instead of around the whole graph
+async function layoutLevel(lvl, units, order, { dir = 'RIGHT', rev = new Set() } = {}) {
+  const L = cfg(lvl);
+  const groups = edgeGroups(lvl);
+  const portOf = {};
+  const leaf = (id) => {
+    const g = units[id], e = ENT[id];
+    const n = { id: 'n:' + id, width: g.w, height: g.h, ports: [], layoutOptions: {} };
+    if (lvl !== 'far' && e.kind === 'file') {
+      n.layoutOptions['elk.portConstraints'] = 'FIXED_POS';
+      const seen = {};
+      const nudge = (side, y) => { const k = side + Math.round(y); seen[k] = (seen[k] || 0) + 1; return y + (seen[k] - 1) * 3; };
+      const port = (p, key, east) => { const pid = `p:${id}:${key}:${p.link}`; portOf[key + p.link] = pid; n.ports.push({ id: pid, width: 1, height: 1, x: east ? g.w - 1 : 0, y: nudge(east ? 'E' : 'W', p.y), layoutOptions: { 'elk.port.side': east ? 'EAST' : 'WEST' } }); };
+      g.outPorts.forEach((p) => port(p, 'o', !rev.has(p.link)));
+      g.inPorts.forEach((p) => port(p, 'i', rev.has(p.link)));
+    } else if (lvl !== 'far') {
+      n.layoutOptions['elk.portConstraints'] = 'FIXED_SIDE';
+      const port = (l, key, east) => { const pid = `p:${id}:${key}:${l.id}`; portOf[key + l.id] = pid; n.ports.push({ id: pid, width: 1, height: 1, layoutOptions: { 'elk.port.side': east ? 'EAST' : 'WEST' } }); };
+      e.out.forEach((l) => port(l, 'o', !rev.has(l.id)));
+      e.inc.forEach((l) => port(l, 'i', rev.has(l.id)));
+    }
+    return n;
+  };
+  const rank = (id) => order ? (order[id] ?? 1e9) : 0;
+  const area = (a) => {
+    const kids = [...a.children.map(area), ...a.files.map(leaf)];
+    if (order) kids.sort((p, q) => rank(p.id) - rank(q.id));
+    return { id: 'a:' + a.id, children: kids, layoutOptions: { 'elk.padding': `[top=${L.pad + L.label},left=${L.pad},bottom=${L.pad},right=${L.pad}]` } };
+  };
+  const kids = [...ROOT_AREAS.map(area), ...LOOSE.map(leaf)];
+  if (order) kids.sort((p, q) => rank(p.id) - rank(q.id));
+  const graph = {
+    id: 'root',
+    layoutOptions: {
+      'elk.algorithm': 'layered', 'elk.direction': dir, 'elk.hierarchyHandling': 'INCLUDE_CHILDREN',
+      'elk.json.shapeCoords': 'ROOT', 'elk.json.edgeCoords': 'ROOT', 'elk.edgeRouting': 'ORTHOGONAL',
+      'elk.layered.considerModelOrder.strategy': 'NODES_AND_EDGES',
+      ...(order ? { 'elk.layered.crossingMinimization.forceNodeModelOrder': 'true' } : {}),
+      'elk.layered.nodePlacement.strategy': 'NETWORK_SIMPLEX',
+      'elk.spacing.nodeNode': String(L.nodeGap), 'elk.layered.spacing.nodeNodeBetweenLayers': String(L.layerGap),
+      'elk.spacing.edgeNode': String(L.nodeGap * 0.4), 'elk.spacing.edgeEdge': String(L.edgeW * 6 + 6),
+      'elk.layered.spacing.edgeNodeBetweenLayers': String(L.nodeGap * 0.4), 'elk.layered.spacing.edgeEdgeBetweenLayers': String(L.edgeW * 5 + 4),
+      'elk.spacing.edgeLabel': String(L.edgeW * 2 + 4), 'elk.edgeLabels.placement': 'CENTER',
+      'elk.padding': '[top=0,left=0,bottom=0,right=0]',
+    },
+    children: kids,
+    edges: groups.map((g) => {
+      const src = lvl === 'far' ? 'n:' + g.a : portOf['o' + g.links[0].id] || 'n:' + g.a;
+      const tgt = lvl === 'far' ? 'n:' + g.b : portOf['i' + g.links[0].id] || 'n:' + g.b;
+      const r = rev.has(g.links[0].id);
+      return {
+        id: 'e:' + g.id, sources: [r ? tgt : src], targets: [r ? src : tgt],
+        labels: lvl === 'far' ? [] : g.labels.map((t) => ({ text: t, ...labelSize(t, L) })),  // System labels are overlays; reserving space would eat the width
+      };
+    }),
+  };
+  const r = await elk.layout(graph);
+  const pos = {}, areas = {};
+  const walk = (n) => {
+    for (const c of n.children || []) {
+      if (c.id.startsWith('n:')) pos[c.id.slice(2)] = { x: c.x, y: c.y };
+      else if (c.id.startsWith('a:')) areas[c.id.slice(2)] = { x: c.x, y: c.y, w: c.width, h: c.height };
+      walk(c);
+    }
+  };
+  walk(r);
+  const edges = (r.edges || []).map((e, i) => {
+    const sec = (e.sections || [])[0];
+    const pts = sec ? [sec.startPoint, ...(sec.bendPoints || []), sec.endPoint] : [];
+    if (rev.has(groups[i].links[0].id)) pts.reverse();
+    return { ...groups[i], pts, labels: (e.labels || []).map((lb) => ({ text: lb.text, x: lb.x, y: lb.y, w: lb.width, h: lb.height })) };
+  });
+  for (const id in pos) Object.assign(units[id], pos[id]);
+  return { units, pos, areas, edges, dir, rev, bounds: { x: 0, y: 0, w: r.width, h: r.height } };
+}
+// links whose target sits behind their source along the layout axis
+function backLinks(geo) {
+  const mid = (u) => (geo.dir === 'DOWN' ? u.y + u.h / 2 : u.x + u.w / 2);
+  return new Set(LINKS.filter((l) => {
+    const a = geo.units[l.a.id], b = geo.units[l.b.id];
+    return a && b && a !== b && mid(b) < mid(a) - 1;
+  }).map((l) => l.id));
+}
+async function layoutForward(lvl, units, order, dir) {
+  const geo = await layoutLevel(lvl, units, order, { dir });
+  const rev = backLinks(geo);
+  return rev.size ? layoutLevel(lvl, units, order, { dir, rev }) : geo;
+}
+// System: left-to-right unless it can't fit at the minimum zoom and top-to-bottom fits better
+async function layoutFar(units) {
+  const raw = (b) => { const r = freeRect(b); return Math.min(r.w / b.w, r.h / b.h); };
+  const right = await layoutForward('far', units, null, 'RIGHT');
+  if (raw(right.bounds) >= FIT.min) return right;
+  const down = await layoutForward('far', units, null, 'DOWN');
+  if (raw(down.bounds) > raw(right.bounds)) return down;
+  for (const id in right.pos) Object.assign(units[id], right.pos[id]);
+  return right;
+}
+
+// Candidate spots along every segment of the edge, on the line and nudged off it; the pill
+// goes where it overlaps the fewest obstacles, preferring spots on or near the line.
+// `clear` is false when every spot covers a tile.
+function placeLabel(pts, w, h, obstacles) {
+  const cost = (x, y, only) => obstacles.reduce((c, o) => {
+    if (only && o.k !== only) return c;
+    const ox = Math.min(x + w, o.x + o.w) - Math.max(x, o.x), oy = Math.min(y + h, o.y + o.h) - Math.max(y, o.y);
+    return ox > 0 && oy > 0 ? c + ox * oy * o.k : c;
+  }, 0);
+  let best = null;
+  for (let k = 1; k < pts.length; k++) {
+    const p0 = pts[k - 1], p1 = pts[k], horiz = Math.abs(p1.y - p0.y) < Math.abs(p1.x - p0.x);
+    for (const f of [0.5, 0.3, 0.7, 0.15, 0.85]) {
+      const cx = p0.x + (p1.x - p0.x) * f, cy = p0.y + (p1.y - p0.y) * f;
+      const offs = horiz ? [0, -1, 1, -2, 2, -3, 3].map((n) => [0, n * (h / 2 + 6)]) : [0, -1, 1, -2, 2].map((n) => [n * (w / 2 + 6), 0]);
+      for (const [dx, dy] of offs) {
+        const x = cx + dx - w / 2, y = cy + dy - h / 2;
+        const c = cost(x, y) + Math.hypot(dx, dy) * 2 + Math.abs(f - 0.5) * 20;
+        if (!best || c < best.c) best = { x, y, c, tiles: cost(x, y, 1) };
+      }
+    }
+  }
+  return { x: best.x, y: best.y, clear: best.tiles === 0 };
+}
+
+// ---------------------------------------------------------------- render one level's DOM from geometry
+const GEO = {}, LAYER = {};
+function roundPath(pts, r) {
+  if (!pts.length) return '';
+  let d = `M${pts[0].x},${pts[0].y}`;
+  for (let i = 1; i < pts.length - 1; i++) {
+    const p0 = pts[i - 1], p1 = pts[i], p2 = pts[i + 1];
+    const d1 = Math.hypot(p1.x - p0.x, p1.y - p0.y), d2 = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+    const k1 = Math.min(r, d1 / 2) / (d1 || 1), k2 = Math.min(r, d2 / 2) / (d2 || 1);
+    d += ` L${p1.x - (p1.x - p0.x) * k1},${p1.y - (p1.y - p0.y) * k1} Q${p1.x},${p1.y} ${p1.x + (p2.x - p1.x) * k2},${p1.y + (p2.y - p1.y) * k2}`;
+  }
+  const z = pts[pts.length - 1];
+  return d + ` L${z.x},${z.y}`;
+}
+function paint(lvl) {
+  const L = cfg(lvl), geo = GEO[lvl], lay = LAYER[lvl];
+  for (const g of Object.values(geo.units)) { g.el.style.left = g.x + 'px'; g.el.style.top = g.y + 'px'; }
+  lay.areas.innerHTML = '';
+  // System labels are overlays: place each where it covers the least of the tiles, area titles and other labels
+  const obstacles = lvl === 'far' ? Object.values(geo.units).map((u) => ({ x: u.x - 4, y: u.y - 4, w: u.w + 8, h: u.h + 8, k: 1 })) : [];
+  const byDepth = AREAS.filter((a) => geo.areas[a.id]).sort((p, q) => p.depth - q.depth);
+  for (const a of byDepth) {
+    const r = geo.areas[a.id];
+    const d = document.createElement('div');
+    d.className = 'area depth-' + Math.min(a.depth, 2); d.dataset.area = a.id;
+    // System: each box's corner radius = its child's radius + the padding between them, so nested corners never cross
+    const rad = lvl === 'far' ? `;border-radius:${TILE_R + L.pad * a.levels}px` : '';
+    d.style.cssText = `left:${r.x}px;top:${r.y}px;width:${r.w}px;height:${r.h}px;--c:${a.color}${rad}`;
+    const [main, ...rest] = a.label.split(' (');
+    const fs = L.labelFont;
+    d.title = a.label;
+    const lx = L.labelX ?? L.pad * 0.6, ly = (L.label + L.pad - fs * 1.25) / 2;  // title centred in the header band
+    if (lvl === 'far') obstacles.push({ x: r.x + lx, y: r.y + ly, w: Math.min(main.length * fs * 0.6, r.w - lx), h: fs * 1.25, k: 0.3 });
+    d.innerHTML = `<div class="area-label" style="font-size:${fs}px;left:${lx}px;top:${ly}px;max-width:${r.w - lx - 8}px">${esc(lvl === 'far' ? main : a.label)}</div>`;
+    lay.areas.appendChild(d);
+  }
+  const b = geo.bounds, pad = 600;
+  const svg = lay.svg;
+  svg.setAttribute('width', b.w + 2 * pad); svg.setAttribute('height', b.h + 2 * pad);
+  svg.style.left = -pad + 'px'; svg.style.top = -pad + 'px';
+  svg.setAttribute('viewBox', `${-pad} ${-pad} ${b.w + 2 * pad} ${b.h + 2 * pad}`);
+  let s = '<defs>';
+  for (const [k, col] of [['call', '#aab4c0'], ['http', '#5aa9ff'], ['data', '#c084fc']])
+    s += `<marker id="ah-${lvl}-${k}" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="${col}"/></marker>`;
+  s += '</defs>';
+  const dash = `${L.edgeW * 3.5} ${L.edgeW * 2.5}`;
+  let labels = '';
+  geo.edges.forEach((e, i) => {
+    const d = roundPath(e.pts, L.edgeW * 8 + 6);
+    const ids = e.links.map((l) => l.id).join(' ');
+    const title = lvl === 'far' ? '' : `<title>${esc(e.links.map((l) => `${entLabel(l.a.id, l.a.line)} → ${entLabel(l.b.id, l.b.line)}${l.label ? ' · ' + l.label : ''}`).join('\n'))}</title>`;  // System uses #tip
+    s += `<g class="edge ${e.kind}" data-gi="${i}" data-links="${ids}">${title}<path class="vis" d="${d}" stroke-width="${L.edgeW}" ${e.kind === 'http' ? `stroke-dasharray="${dash}"` : ''} marker-end="url(#ah-${lvl}-${e.kind})"/>` +
+      `<path class="hit" d="${d}" stroke-width="${Math.max(L.edgeW * 6, 14)}"/></g>`;
+    if (lvl === 'far' && e.pts.length > 1 && e.labels.length === 0 && e.links.length) {
+      // one pill per distinct label, tagged with only the links that carry it, so focus lights just those
+      const texts = [...new Set(e.links.map((l) => l.label))].filter(Boolean);
+      for (const t of texts) {
+        const { width: w, height: h } = labelSize(t, L);
+        const lb = placeLabel(e.pts, w, h, obstacles);
+        if (!lb.clear) continue;  // no pill that would cover a tile; hovering the edge still shows it in the tooltip
+        obstacles.push({ x: lb.x, y: lb.y, w, h, k: 0.8 });
+        e.labels.push({ text: t, ids: e.links.filter((l) => l.label === t).map((l) => l.id).join(' '), ...lb, w, h });
+      }
+    }
+    for (const lb of e.labels)
+      labels += `<div class="elabel ${e.kind}" data-gi="${i}" data-links="${lb.ids || ids}" style="left:${lb.x}px;top:${lb.y}px;width:${lb.w}px;height:${lb.h}px;font-size:${L.elFont}px;line-height:${lb.h - 2}px;padding:0 ${L.elPadX}px" title="${esc(lb.text)}">${esc(lb.text)}</div>`;
+  });
+  svg.innerHTML = s;
+  lay.labels.innerHTML = labels;
+}
+
+// ---------------------------------------------------------------- boot: build + layout all levels
+function makeLayer(lvl) {
+  const root = document.createElement('div');
+  root.className = `lvl lvl-${lvl} hidden`;
+  const areas = document.createElement('div'), svg = document.createElementNS(SVGNS, 'svg'), units = document.createElement('div'), labels = document.createElement('div');
+  root.append(areas, svg, units, labels);
+  return { root, areas, svg, units, labels };
+}
+async function buildLevel(lvl, order) {
+  if (LAYER[lvl]) LAYER[lvl].root.remove();
+  const lay = makeLayer(lvl);
+  lay.root.classList.remove('hidden');
+  MEASURE.appendChild(lay.root);
+  const units = buildUnits(lvl, lay.units);
+  const geo = lvl === 'far' ? await layoutFar(units) : await layoutLevel(lvl, units, order, { rev: GEO.far.rev });
+  MEASURE.removeChild(lay.root);
+  lay.root.classList.add('hidden');
+  world.appendChild(lay.root);
+  LAYER[lvl] = lay; GEO[lvl] = geo;
+  paint(lvl);
+}
+// the free screen rect for fitting: below the info panel (when open), above the bottom HUD row
+function freeRect(b) {
+  const info = document.getElementById('hud-info');
+  if (!info || info.classList.contains('collapsed')) return { x: 24, y: 104, w: innerWidth - 48, h: innerHeight - 300 };
+  const ir = info.getBoundingClientRect();
+  const below = { x: 24, y: ir.bottom + 16, w: innerWidth - 48, h: Math.max(200, innerHeight - ir.bottom - 196) };  // clear of legend/minimap
+  const right = { x: ir.right + 16, y: 70, w: Math.max(200, innerWidth - ir.right - 40), h: innerHeight - 190 };
+  if (!b) return below;
+  const sc = (r) => Math.min(r.w / b.w, r.h / b.h);
+  return sc(right) > sc(below) ? right : below;
+}
+// Fit at System: as close to 100% as fits, never below 90% (bigger graphs pan instead of shrinking)
+const fitScale = (b) => { const r = freeRect(b); return clamp(Math.min(r.w / b.w, r.h / b.h), FIT.min, FIT.max); };
+
+// HUD text first, so Fit knows how much room the info panel takes
+$('#title').textContent = G.meta.title || 'Code guide';
+$('#question').innerHTML = md(G.meta.question || '');
+const shortRef = (r) => String(r || '').replace(/\b([0-9a-f]{7})[0-9a-f]{33}\b/gi, '$1');
+const pr = G.meta.pr;
+$('#tag').textContent = !isPR ? 'Code guide · explore'
+  : `Code guide · ${pr && pr.number ? `PR #${pr.number}` : 'PR'}${pr ? ` vs ${shortRef(pr.base)}${pr.repo ? ` (${pr.repo})` : ''}` : ''}`;
+const TLDR = (G.meta.tldr || []).map((t) => (typeof t === 'string' ? { text: t, refs: [] } : t));
+$('#tldr').innerHTML = TLDR.map((t, i) => t.refs.length
+  ? `<li class="refs" data-i="${i}"><span class="tx">${md(t.text)}</span> <span class="cnt">· ${t.refs.length}</span></li>`
+  : `<li>${md(t.text)}</li>`).join('');
+$('#tldr-hint').textContent = TLDR.some((t) => t.refs.length) ? 'Hover a bullet to light up its code · click to zoom to it' : '';
+// start collapsed when the open panel would cover more than 30% of the screen
+const infoR = $('#hud-info').getBoundingClientRect();
+const infoTooBig = infoR.width * infoR.height > 0.3 * innerWidth * innerHeight;
+if (infoTooBig) $('#hud-info').classList.add('collapsed');
+const order = {};  // Snippets and Code reuse the System-level order so columns stay stable
+try {
+  await buildLevel('far');
+  // order within a layer: y when System runs left-to-right, x when it runs top-to-bottom
+  const rankOf = GEO.far.dir === 'DOWN' ? (r) => r.x + r.y * 1e-3 : (r) => r.x * 1e-3 + r.y;
+  Object.values(GEO.far.units).forEach((g) => (order['n:' + g.id] = rankOf(g)));
+  for (const a of AREAS) if (GEO.far.areas[a.id]) order['a:' + a.id] = rankOf(GEO.far.areas[a.id]);
+  await buildLevel('mid', order);
+  await buildLevel('near', order);
+} catch (err) {
+  return fail(err && err.stack || String(err));
+}
+
+// ---------------------------------------------------------------- camera
+let level = null, locked = false;
+const cam = { s: 0.2, tx: 0, ty: 0 };
+const toWorld = (px, py) => [(px - cam.tx) / cam.s, (py - cam.ty) / cam.s];
+function apply() {
+  world.style.transform = `translate(${cam.tx}px,${cam.ty}px) scale(${cam.s})`;
+  const gs = 40 * cam.s;
+  vp.style.backgroundSize = `${gs}px ${gs}px`;
+  vp.style.backgroundPosition = `${cam.tx}px ${cam.ty}px`;
+  $('#pct').textContent = Math.round(zoomOf() * 100) + '%';
+  document.querySelectorAll('#hud-zoom .seg button').forEach((b) => b.classList.toggle('on', b.dataset.lvl === level));
+  scheduleLazy();
+  drawMini();
+}
+function locate(lvl, wx, wy) {
+  let best = null, bd = Infinity;
+  for (const g of Object.values(GEO[lvl].units)) {
+    const dx = Math.max(g.x - wx, 0, wx - (g.x + g.w)), dy = Math.max(g.y - wy, 0, wy - (g.y + g.h));
+    const d = Math.hypot(dx, dy);
+    if (d < bd) { bd = d; best = g; }
+  }
+  if (!best) return null;
+  const relY = wy - best.y;
+  let ln = null;
+  if (best.rows && relY >= 0 && relY <= best.ch) {
+    let r0 = null; for (const r of best.rows) if (relY >= r.y) r0 = r;
+    if (r0) ln = { line: r0.line || r0.from, dy: relY - (r0.y + r0.h / 2) };
+  }
+  return { id: best.id, u: clamp((wx - best.x) / best.w, 0, 1), v: clamp(relY / best.h, 0, 1), ln };
+}
+function fromRef(lvl, r) {
+  const g = GEO[lvl].units[r.id];
+  const x = g.x + r.u * g.w;
+  const y = r.ln && g.rows ? g.y + rowY(g, r.ln.line) + r.ln.dy : g.y + r.v * g.h;
+  return [x, y];
+}
+function setLevel(lvl, anchor) {
+  if (lvl === level) return;
+  const prev = level;
+  const [ax, ay] = anchor || [innerWidth / 2, innerHeight / 2];
+  const ref = prev ? locate(prev, ...toWorld(ax, ay)) : null;
+  const old = prev ? { tx: cam.tx, ty: cam.ty, s: cam.s } : null;
+  if (prev) LAYER[prev].root.classList.add('hidden');
+  LAYER[lvl].root.classList.remove('hidden');
+  if (prev) cam.s = (cam.s * K[prev]) / K[lvl];  // same zoom, new level's units
+  level = lvl;
+  if (ref) { const [wx, wy] = fromRef(lvl, ref); cam.tx = ax - wx * cam.s; cam.ty = ay - wy * cam.s; }
+  if (prev) flip(prev, lvl, old);
+  if (!userCollapsed) $('#hud-info').classList.toggle('collapsed', lvl !== 'far' || infoTooBig);
+  applyFocus();
+}
+// FLIP: every card and area starts where it was on screen in the old level, then glides to its new place.
+function flip(prev, lvl, old) {
+  const s = cam.s, k = old.s / s;  // old-level units -> new-level units
+  const go = (el, a, b) => {
+    if (!a || !b || !b.w || !b.h) return;
+    el.classList.remove('flip');
+    const x = (old.tx + a.x * old.s - cam.tx) / s, y = (old.ty + a.y * old.s - cam.ty) / s;
+    el.style.transform = `translate(${x - b.x}px,${y - b.y}px) scale(${(a.w * k) / b.w},${(a.h * k) / b.h})`;
+    el.style.opacity = '.35';
+  };
+  const P = GEO[prev], N = GEO[lvl], lay = LAYER[lvl];
+  const moved = [];
+  for (const id in N.units) { const el = N.units[id].el; go(el, P.units[id], N.units[id]); moved.push(el); }
+  lay.areas.querySelectorAll('.area').forEach((el) => { go(el, P.areas[el.dataset.area], N.areas[el.dataset.area]); moved.push(el); });
+  lay.svg.style.opacity = '0'; lay.labels.style.opacity = '0';
+  void lay.root.offsetWidth;
+  for (const el of moved) { el.classList.add('flip'); el.style.transform = ''; el.style.opacity = ''; }
+  clearTimeout(flip.t);
+  flip.t = setTimeout(() => {
+    lay.svg.style.opacity = ''; lay.labels.style.opacity = '';
+    lay.svg.classList.remove('fade-in'); lay.labels.classList.remove('fade-in'); void lay.root.offsetWidth;
+    lay.svg.classList.add('fade-in'); lay.labels.classList.add('fade-in');
+    for (const el of moved) el.classList.remove('flip');
+  }, 380);
+}
+function afterCam(anchor) {
+  if (!locked) { const want = levelForZ(zoomOf()); if (want !== level) setLevel(want, anchor); }
+  apply();
+}
+function zoomAround(px, py, f) {
+  const s2 = clamp(cam.s * f, Z.min / K[level], RANGE.near[1] * K.near / K[level]);
+  const [wx, wy] = toWorld(px, py);
+  cam.s = s2; cam.tx = px - wx * s2; cam.ty = py - wy * s2;
+  afterCam([px, py]);
+}
+let anim = null;
+function flyTo(lvl, t, done) {
+  if (anim) cancelAnimationFrame(anim);
+  anim = -1;  // mark in-flight before the first apply, so lazy highlighting waits
+  locked = true;
+  setLevel(lvl);
+  apply();
+  if (typeof t === 'function') t = t();
+  const vw = innerWidth, vh = innerHeight;
+  const [sx, sy] = toWorld(vw / 2, vh / 2), s0 = cam.s;
+  const t0 = performance.now(), dur = 700;
+  const step = (now) => {
+    const k = clamp((now - t0) / dur, 0, 1), e = k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
+    const s = Math.exp(Math.log(s0) + (Math.log(t.s) - Math.log(s0)) * e);
+    cam.s = s; cam.tx = vw / 2 - (sx + (t.cx - sx) * e) * s; cam.ty = vh / 2 - (sy + (t.cy - sy) * e) * s;
+    apply();
+    if (k < 1) anim = requestAnimationFrame(step);
+    else { anim = null; locked = false; afterCam(); done && done(); }
+  };
+  anim = requestAnimationFrame(step);
+}
+function flash(id, line) {
+  const g = GEO[level].units[id];
+  const row = g && g.el.querySelector(`.row[data-line="${line}"]`);
+  if (row) { row.classList.remove('flash'); void row.offsetWidth; row.classList.add('flash'); }
+}
+function flyToLine(id, line, done) {
+  const g = GEO.near.units[id];
+  if (!g) return;
+  const cy = line && g.rows ? g.y + rowY(g, line) : g.y + Math.min(g.h, innerHeight) / 2;
+  const s = clamp(Math.min(1, (innerWidth - 100) / g.w), RANGE.near[0], 1);
+  flyTo('near', { s, cx: g.x + g.w / 2, cy }, () => { flash(id, line); done && done(); });
+}
+function zoomToCard(id) {
+  const g = GEO.near.units[id];
+  if (!g) return;
+  const first = ENT[id].hls && ENT[id].hls[0];
+  if (first) return flyToLine(id, first.from);
+  flyTo('near', { s: 1, cx: g.x + g.w / 2, cy: g.y + Math.min(g.h, innerHeight) / 2 });
+}
+function fitTarget() {
+  const b = GEO.far.bounds, s = fitScale(b), r = freeRect(b);
+  // centre in the free rect; if the graph overflows it, pin its start (left/top) instead so the flow reads from the beginning
+  const px = b.w * s <= r.w ? r.x + (r.w - b.w * s) / 2 : r.x;
+  const py = b.h * s <= r.h ? r.y + (r.h - b.h * s) / 2 : r.y;
+  return { s, cx: b.x + (innerWidth / 2 - px) / s, cy: b.y + (innerHeight / 2 - py) / s };
+}
+const fit = () => flyTo('far', fitTarget());
+function goLevel(lvl) {
+  if (lvl === 'far') return fit();
+  // land inside the level's zoom band (geometric middle for Snippets), never on a boundary that hands off
+  const s = lvl === 'mid' ? Math.sqrt(RANGE.mid[0] * RANGE.mid[1]) : clamp(1.0, ...RANGE.near);
+  flyTo(lvl, () => { const [cx, cy] = toWorld(innerWidth / 2, innerHeight / 2); return { s, cx, cy }; });
+}
+
+// fit a set of refs (highlight ids / link ids) at the closest level that shows them all
+function itemsFor(refs) {
+  const items = [];
+  for (const r of refs) {
+    const h = HL_BY_ID[r];
+    if (h) { items.push({ id: h.file, from: h.from, to: h.to }); continue; }
+    const l = LINK_BY_ID[r];
+    if (l) { items.push({ id: l.a.id, from: l.a.line, to: l.a.line }, { id: l.b.id, from: l.b.line, to: l.b.line }); }
+  }
+  return items;
+}
+function bbox(lvl, items) {
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  for (const it of items) {
+    const g = GEO[lvl].units[it.id]; if (!g) continue;
+    let ya = g.y, yb = g.y + g.h;
+    if (lvl !== 'far' && g.rows && it.from) { const rh = LV[lvl].rowH; ya = g.y + rowY(g, it.from) - rh * 2; yb = g.y + rowY(g, it.to) + rh * 2; }
+    x0 = Math.min(x0, g.x); x1 = Math.max(x1, g.x + g.w); y0 = Math.min(y0, ya); y1 = Math.max(y1, yb);
+  }
+  return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
+}
+function centreOn(b, s) {
+  const r = freeRect();
+  return { s, cx: b.x + b.w / 2 - (r.x + r.w / 2 - innerWidth / 2) / s, cy: b.y + b.h / 2 - (r.y + r.h / 2 - innerHeight / 2) / s };
+}
+function fitRefs(refs) {
+  const items = itemsFor(refs);
+  if (!items.length) return;
+  const room = () => { const r = freeRect(); return [r.w - 40, r.h - 40]; };
+  for (const lvl of ['near', 'mid']) {
+    const b = bbox(lvl, items), [w, h] = room();
+    const s = Math.min(w / b.w, h / b.h);
+    if (s >= RANGE[lvl][0]) return flyTo(lvl, () => centreOn(bbox(lvl, items), Math.min(s, lvl === 'near' ? 1 : RANGE.mid[1])));
+  }
+  flyTo('far', () => { const b = bbox('far', items), [w, h] = room(); return centreOn(b, Math.min(w / b.w, h / b.h, RANGE.far[1])); });
+}
+
+// ---------------------------------------------------------------- lazy highlighting (visible cards only, once)
+let lazyRaf = null;
+function scheduleLazy() {
+  if (lazyRaf || level === 'far' || anim) return;  // wait for the camera to land
+  lazyRaf = requestAnimationFrame(() => {
+    lazyRaf = null;
+    const [x0, y0] = toWorld(-200, -200), [x1, y1] = toWorld(innerWidth + 200, innerHeight + 200);
+    for (const g of Object.values(GEO[level].units)) {
+      if (g.hlDone || ENT[g.id].kind !== 'file') continue;
+      if (g.x > x1 || g.x + g.w < x0 || g.y > y1 || g.y + g.h < y0) continue;
+      const e = ENT[g.id], lines = hlLines(e);
+      g.el.querySelectorAll('.row[data-line]').forEach((r) => { r.querySelector('.src').innerHTML = lines[+r.dataset.line - e.startLine] || ' '; });
+      g.el.querySelectorAll('.row.del').forEach((r) => { const [n, k] = r.dataset.del.split(':'); r.querySelector('.src').innerHTML = delLines(e, n)[k] || ' '; });
+      g.hlDone = true;
+    }
+  });
+}
+
+// ---------------------------------------------------------------- focus (TL;DR hover, tour)
+let hoverFocus = null, tourFocus = null, pinnedFocus = null;
+function focusFrom({ hls = [], links = [], ents = [], lines = [] }) {
+  const F = { hls: new Set(), links: new Set(), ents: new Set(ents), lines: new Set(lines) };
+  for (const r of hls) { const h = typeof r === 'number' ? HL[r] : HL_BY_ID[r]; if (h) { F.hls.add(h.i); F.ents.add(h.file); } }
+  for (const r of links) { const l = LINK_BY_ID[r]; if (l) { F.links.add(l.id); F.ents.add(l.a.id); F.ents.add(l.b.id); F.lines.add(l.a.id + ':' + l.a.line); F.lines.add(l.b.id + ':' + l.b.line); } }
+  return F;
+}
+function refsFocus(refs) {
+  return focusFrom({ hls: refs.filter((r) => HL_BY_ID[r]), links: refs.filter((r) => LINK_BY_ID[r]) });
+}
+function applyFocus() {
+  if (!level) return;
+  const F = hoverFocus || pinnedFocus || tourFocus, root = LAYER[level].root;
+  root.classList.toggle('focusing', !!F);
+  root.querySelectorAll('.glow').forEach((el) => el.classList.remove('glow'));
+  if (!F) return;
+  for (const g of Object.values(GEO[level].units)) if (F.ents.has(g.id)) g.el.classList.add('glow');
+  root.querySelectorAll('[data-hls]').forEach((el) => { if (el.dataset.hls.split(' ').some((i) => F.hls.has(+i))) el.classList.add('glow'); });
+  for (const key of F.lines) {
+    const [id, line] = [key.slice(0, key.lastIndexOf(':')), key.slice(key.lastIndexOf(':') + 1)];
+    const g = GEO[level].units[id];
+    const row = g && line !== 'null' && g.el.querySelector(`.row[data-line="${line}"]`);
+    if (row) row.classList.add('glow');
+  }
+  root.querySelectorAll('[data-hl]').forEach((el) => { if (F.hls.has(+el.dataset.hl)) el.classList.add('glow'); });
+  root.querySelectorAll('[data-links]').forEach((el) => { if (el.dataset.links.split(' ').some((id) => F.links.has(id))) el.classList.add('glow'); });
+}
+
+// ---------------------------------------------------------------- tour
+const TOUR = G.tour || [];
+let step = -1;
+function renderTour() {
+  const bar = $('#tour');
+  if (!TOUR.length) { bar.style.display = 'none'; return; }
+  bar.classList.toggle('idle', step < 0);
+  $('#t-start').textContent = `▶ Start tour · ${TOUR.length} step${TOUR.length > 1 ? 's' : ''}`;
+  if (step < 0) return;
+  const t = TOUR[step];
+  $('#t-num').textContent = `${step + 1}/${TOUR.length}`;
+  $('#t-title').innerHTML = md(t.title); $('#t-body').innerHTML = md(t.body);
+  $('#t-prev').disabled = step === 0; $('#t-next').disabled = step === TOUR.length - 1;
+}
+function goStep(i) {
+  if (!TOUR.length) return;
+  step = clamp(i, 0, TOUR.length - 1);
+  const t = TOUR[step], fid = t.focus.file ?? t.focus.node, line = t.focus.line ?? null;
+  const hlsAtFocus = line ? HL.filter((h) => h.file === fid && h.from <= line && line <= h.to).map((h) => h.i) : [];
+  tourFocus = focusFrom({ hls: hlsAtFocus, links: t.links || [], ents: [fid], lines: line ? [fid + ':' + line] : [] });
+  pinnedFocus = null;
+  renderTour(); applyFocus();
+  flyToLine(fid, line);
+}
+function exitTour() { step = -1; tourFocus = null; pinnedFocus = null; renderTour(); applyFocus(); }
+$('#t-start').onclick = () => goStep(0);
+$('#t-prev').onclick = () => goStep(step - 1);
+$('#t-next').onclick = () => goStep(step + 1);
+$('#t-exit').onclick = exitTour;
+
+// ---------------------------------------------------------------- HUD content
+document.querySelectorAll('#tldr li.refs').forEach((li) => {
+  const refs = TLDR[+li.dataset.i].refs;
+  li.addEventListener('mouseenter', () => { hoverFocus = refsFocus(refs); applyFocus(); });
+  li.addEventListener('mouseleave', () => { hoverFocus = null; applyFocus(); });
+  li.addEventListener('click', () => { pinnedFocus = refsFocus(refs); applyFocus(); fitRefs(refs); });
+});
+let userCollapsed = false;
+$('#collapse').onclick = () => { const c = $('#hud-info').classList.toggle('collapsed'); userCollapsed = c; };
+
+const usedRoles = ROLES.filter((r) => HL.some((h) => h.role === r));
+const usedFlags = ['gotcha', 'changed'].filter((f) => HL.some((h) => h.flags.includes(f)) || (f === 'changed' && isPR));
+$('#legend-row').innerHTML = (usedRoles.length ? usedRoles : ROLES).map((r) => `<span><i class="sw" style="background:var(--${r})"></i>${r}</span>`).join('') +
+  usedFlags.map((f) => `<span><span class="badge ${f}" style="font-size:10px">${f}</span></span>`).join('') +
+  '<span style="width:4px"></span>' +
+  [['call', 'solid'], ['http', 'dashed'], ['data', 'solid']].filter(([k]) => LINKS.some((l) => l.kind === k))
+    .map(([k, st]) => `<span><i class="ln2" style="border-color:var(--${k});border-top-style:${st}"></i>${k}</span>`).join('');
+$('#legend-defs').innerHTML = ROLES.map((r) => `<div><i class="sw" style="background:var(--${r})"></i><b>${r}</b>: ${DEFS[r]}</div>`).join('') +
+  ['gotcha', 'changed'].map((f) => `<div><span class="badge ${f}" style="font-size:10px">${f}</span> ${DEFS[f]}</div>`).join('') +
+  '<div style="color:var(--dim)">Lines with no highlight are not involved.</div>' +
+  '<div style="color:var(--dim)">System view: the thin bar along each tile\'s bottom is the whole file, start to end. Colored marks are its highlights; hover one for details.</div>';
+$('#hud-legend').addEventListener('click', () => $('#hud-legend').classList.toggle('open'));
+
+// strip tooltips
+const tip = $('#tip');
+world.addEventListener('mouseover', (e) => {
+  const m = e.target.closest('.strip i');
+  if (!m) return;
+  const h = HL[+m.dataset.hl];
+  tip.innerHTML = `<div class="kt" style="color:var(--${h.role})">${h.role}${h.flags.map((f) => `<span class="badge ${f}">${f}</span>`).join('')}</div>` +
+    `<div class="bt">${md(h.title)}</div><div class="ln3">${esc(base(ENT[h.file].path))} · L${h.from}${h.to !== h.from ? '–' + h.to : ''}</div>` +
+    (h.body ? `<div style="color:#a7b0bc;margin-top:3px">${md(h.body)}</div>` : '') + '<div class="ln3" style="margin-top:4px">click to open</div>';
+  tip.style.display = 'block';
+});
+world.addEventListener('mousemove', (e) => {
+  if (tip.style.display !== 'block') return;
+  tip.style.left = Math.min(e.clientX + 14, innerWidth - 340) + 'px';
+  tip.style.top = Math.min(e.clientY + 14, innerHeight - tip.offsetHeight - 10) + 'px';
+});
+world.addEventListener('mouseout', (e) => { if (e.target.closest('.strip i')) tip.style.display = 'none'; });
+const edgeLabels = (g) => LAYER[level].labels.querySelectorAll(`.elabel[data-gi="${g.dataset.gi}"]`);
+// System pills only exist where they clear the tiles, so edge hover there uses the cursor tooltip
+world.addEventListener('mouseover', (e) => {
+  const g = e.target.closest('.edge');
+  if (!g) return;
+  if (level !== 'far') return edgeLabels(g).forEach((l) => l.classList.add('show'));
+  tip.innerHTML = GEO.far.edges[+g.dataset.gi].links.map((l) =>
+    `<div class="bt" style="color:var(--${l.kind})">${esc(l.label || l.kind)}</div><div class="ln3">${esc(entLabel(l.a.id, l.a.line))} → ${esc(entLabel(l.b.id, l.b.line))}</div>`).join('') +
+    '<div class="ln3" style="margin-top:4px">click to open</div>';
+  tip.style.display = 'block';
+});
+world.addEventListener('mouseout', (e) => {
+  const g = e.target.closest('.edge');
+  if (!g) return;
+  edgeLabels(g).forEach((l) => l.classList.remove('show'));
+  if (level === 'far') tip.style.display = 'none';
+});
+
+// ---------------------------------------------------------------- minimap
+const mini = $('#mini'), mctx = mini.getContext('2d');
+let miniRaf = null, miniT = null;
+const ROLE_HEX = Object.fromEntries(['core', 'supporting', 'plumbing', 'contract', 'test']
+  .map((r) => [r, getComputedStyle(document.documentElement).getPropertyValue('--' + r).trim()]));
+const topColor = {};
+ROOT_AREAS.forEach((a) => { const walk = (x) => { topColor[x.id] = a.color.startsWith('var') ? '#f5a524' : a.color; x.children.forEach(walk); }; walk(a); });
+function drawMini() {
+  if (miniRaf) return;
+  miniRaf = requestAnimationFrame(() => {
+    miniRaf = null;
+    const geo = GEO[level]; if (!geo) return;
+    const b = geo.bounds, W = mini.width, H = mini.height;
+    const m = Math.min((W - 12) / b.w, (H - 12) / b.h);
+    const ox = (W - b.w * m) / 2 - b.x * m, oy = (H - b.h * m) / 2 - b.y * m;
+    miniT = { m, ox, oy };
+    mctx.clearRect(0, 0, W, H);
+    for (const a of AREAS) {
+      const r = geo.areas[a.id]; if (!r) continue;
+      mctx.strokeStyle = topColor[a.id] || '#555'; mctx.globalAlpha = a.depth === 0 ? 0.7 : 0.35;
+      mctx.strokeRect(ox + r.x * m, oy + r.y * m, r.w * m, r.h * m);
+    }
+    mctx.globalAlpha = 1;
+    for (const g of Object.values(geo.units)) {
+      const e = ENT[g.id];
+      mctx.fillStyle = e.kind === 'node' ? '#8a5f12' : repoColor[e.repo] + '99';
+      const rx = ox + g.x * m, ry = oy + g.y * m, rw = Math.max(g.cw * m, 2), rh = Math.max(g.ch * m, 2);
+      mctx.globalAlpha = e.kind === 'node' ? 1 : 0.35;
+      mctx.fillRect(rx, ry, rw, rh);
+      mctx.globalAlpha = 1;
+      if (e.kind === 'file' && e.lines.length) {
+        const total = e.lines.length;
+        for (const h of e.hls) {
+          mctx.fillStyle = ROLE_HEX[h.role] || '#888';
+          const f0 = (h.from - e.startLine) / total, f1 = (h.to - h.from + 1) / total;
+          if (level === 'far') mctx.fillRect(rx + f0 * rw, ry + rh - Math.max(rh * 0.3, 1.5), Math.max(f1 * rw, 1.5), Math.max(rh * 0.3, 1.5));
+          else mctx.fillRect(rx + 1, ry + f0 * rh, Math.max(rw - 2, 1), Math.max(f1 * rh, 1.5));
+        }
+      }
+    }
+    const [x0, y0] = toWorld(0, 0), [x1, y1] = toWorld(innerWidth, innerHeight);
+    mctx.strokeStyle = '#fff'; mctx.lineWidth = 1.5;
+    const rx0 = clamp(ox + x0 * m, 1, W - 1), ry0 = clamp(oy + y0 * m, 1, H - 1), rx1 = clamp(ox + x1 * m, 1, W - 1), ry1 = clamp(oy + y1 * m, 1, H - 1);
+    mctx.strokeRect(rx0, ry0, rx1 - rx0, ry1 - ry0);
+    mctx.lineWidth = 1;
+  });
+}
+let miniDrag = false;
+const miniPan = (e) => {
+  const rect = mini.getBoundingClientRect();
+  const wx = (e.clientX - rect.left - miniT.ox) / miniT.m, wy = (e.clientY - rect.top - miniT.oy) / miniT.m;
+  cam.tx = innerWidth / 2 - wx * cam.s; cam.ty = innerHeight / 2 - wy * cam.s; apply();
+};
+mini.addEventListener('pointerdown', (e) => { miniDrag = true; mini.setPointerCapture(e.pointerId); miniPan(e); });
+mini.addEventListener('pointermove', (e) => miniDrag && miniPan(e));
+mini.addEventListener('pointerup', () => (miniDrag = false));
+
+// ---------------------------------------------------------------- input
+let pan = null;
+vp.addEventListener('pointerdown', (e) => {
+  if (e.target.closest('.chip,.elabel,.hit,.strip i,.bubble')) return;
+  pan = { x: e.clientX, y: e.clientY, id: e.pointerId, moved: 0 };
+});
+vp.addEventListener('pointermove', (e) => {
+  if (!pan) return;
+  pan.moved += Math.abs(e.clientX - pan.x) + Math.abs(e.clientY - pan.y);
+  if (pan.moved > 4 && !vp.classList.contains('panning')) { vp.setPointerCapture(pan.id); vp.classList.add('panning'); }
+  cam.tx += e.clientX - pan.x; cam.ty += e.clientY - pan.y; pan.x = e.clientX; pan.y = e.clientY; apply();
+});
+let wasDrag = false;
+const endPan = () => { wasDrag = !!(pan && pan.moved > 4); pan = null; vp.classList.remove('panning'); };
+vp.addEventListener('pointerup', endPan); vp.addEventListener('pointercancel', endPan);
+vp.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  if (anim) return;
+  if (e.ctrlKey || e.metaKey || e.altKey) zoomAround(e.clientX, e.clientY, Math.exp(-clamp(e.deltaY, -60, 60) * 0.008));
+  else { cam.tx -= e.deltaX; cam.ty -= e.deltaY; apply(); }
+}, { passive: false });
+vp.addEventListener('dblclick', (e) => { const u = e.target.closest('[data-ent]'); if (u) zoomToCard(u.dataset.ent); });
+vp.addEventListener('click', (e) => {
+  const chip = e.target.closest('.chip');
+  if (chip) { const l = LINK_BY_ID[chip.dataset.link], end = l[chip.dataset.end]; return flyToLine(end.id, end.line); }
+  const mark = e.target.closest('.strip i');
+  if (mark) { tip.style.display = 'none'; const h = HL[+mark.dataset.hl]; return flyToLine(h.file, h.from); }
+  const bub = e.target.closest('.bubble');
+  if (bub) {  // pans never start on a callout, so any click on one is a click
+    const i = +bub.dataset.hl, h = HL[i];
+    if (level === 'near') return toggleCallout(i);
+    setCallout(i, true, false); return flyToLine(h.file, h.from);
+  }
+  const lab = e.target.closest('.elabel,.edge');
+  if (lab) { const g = GEO[level].edges[+lab.dataset.gi], l = LINK_BY_ID[lab.dataset.links.split(' ')[0]] || g.links[0]; return flyToLine(l.b.id, l.b.line); }
+  if (pinnedFocus && !wasDrag) { pinnedFocus = null; applyFocus(); }
+});
+document.querySelectorAll('#hud-zoom .seg button').forEach((b) => b.addEventListener('click', () => goLevel(b.dataset.lvl)));
+const smoothZoom = (f) => {
+  // Snippets is a narrow band; a step that would jump from System straight to Code (or back) lands in its middle
+  const z0 = zoomOf(), a = levelForZ(z0), b = levelForZ(z0 * f);
+  if (a !== b && a !== 'mid' && b !== 'mid') f = Math.sqrt(Z.mid * Z.near) / z0;
+  const t0 = performance.now(), dur = 260; let prev = 0;
+  const st = (now) => { const k = clamp((now - t0) / dur, 0, 1); zoomAround(innerWidth / 2, innerHeight / 2, Math.pow(f, k - prev)); prev = k; if (k < 1) requestAnimationFrame(st); };
+  requestAnimationFrame(st);
+};
+$('#zin').onclick = () => smoothZoom(1.6);
+$('#zout').onclick = () => smoothZoom(1 / 1.6);
+$('#fit').onclick = fit;
+addEventListener('keydown', (e) => {
+  if (e.target.closest && e.target.closest('input,textarea')) return;
+  if (e.key === '+' || e.key === '=') smoothZoom(1.6);
+  else if (e.key === '-') smoothZoom(1 / 1.6);
+  else if (e.key === '0') fit();
+  else if (e.key === '1') goLevel('far');
+  else if (e.key === '2') goLevel('mid');
+  else if (e.key === '3') goLevel('near');
+  else if (e.key === 'd' && hasDiff) toggleDiff();
+  else if (e.key === 'ArrowRight' && TOUR.length) goStep(step < 0 ? 0 : step + 1);
+  else if (e.key === 'ArrowLeft' && TOUR.length && step >= 0) goStep(step - 1);
+  else if (e.key === 'Escape') { if (pinnedFocus) { pinnedFocus = null; applyFocus(); } else exitTour(); }
+});
+addEventListener('resize', apply);
+
+// ---------------------------------------------------------------- callouts: open/close one, keep it on screen where it was
+// In place, no relayout: the callout's body slides open (CSS) while the callouts below it and their
+// connectors slide to their new spots over the same 200ms. Callouts above never move.
+function setCallout(i, open, animate = true) {
+  if (OPEN.has(i) === open) return;
+  if (open) OPEN.add(i); else OPEN.delete(i);
+  const h = HL[i], g = GEO.near.units[h.file], L = LV.near;
+  if (!g) return;
+  const from = g.bubbles.map((b) => b.top);
+  const target = g.bubbles.map((b) => b.hc + (OPEN.has(b.h.i) ? b.el.querySelector('.in').scrollHeight : 0));
+  const bottom = stackBubbles(g, 'near', target);
+  const to = g.bubbles.map((b) => b.top);
+  g.bubbles.forEach((b, k) => (b.bh = target[k]));
+  const el = g.bubbles.find((b) => b.h.i === i).el;
+  if (!animate) el.style.transition = 'none';
+  el.classList.toggle('open', open);
+  const grow = Math.max(g.ch, bottom + 6);
+  if (grow > g.h) { g.h = grow; g.el.style.height = g.h + 'px'; g.el.querySelector('.usvg').setAttribute('height', g.h); }
+  const paths = Object.fromEntries([...g.el.querySelectorAll('path.conn')].map((p) => [p.dataset.hl, p]));
+  const frame = (k) => g.bubbles.forEach((b, j) => {
+    const top = from[j] + (to[j] - from[j]) * k;
+    b.el.style.top = top + 'px';
+    paths[b.h.i]?.setAttribute('d', connD(g, L, b, top));
+  });
+  const done = () => { frame(1); el.style.transition = ''; g.h = grow; g.el.style.height = g.h + 'px'; g.el.querySelector('.usvg').setAttribute('height', g.h); drawMini(); };
+  if (!animate) return done();
+  const t0 = performance.now(), ease = (t) => 1 - Math.pow(1 - t, 3);
+  const step = (now) => { const t = Math.min(1, (now - t0) / 200); frame(ease(t)); if (t < 1) requestAnimationFrame(step); else done(); };
+  requestAnimationFrame(step);
+}
+const toggleCallout = (i) => setCallout(i, !OPEN.has(i));
+
+// ---------------------------------------------------------------- diff toggle: merged diff vs final file
+// Row heights change, so Snippets and Code are re-laid out; the line at screen centre stays put.
+// toggles run one at a time: two overlapping rebuilds would restore the camera out of order
+let diffQueue = Promise.resolve();
+const toggleDiff = () => (diffQueue = diffQueue.then(applyDiffToggle));
+// Deleted lines fold shut (or open) in place; the relayout happens while they are collapsed, so nothing jumps.
+const FOLD_MS = 280;
+const foldRows = (root, open) => {
+  const rows = [...root.querySelectorAll('.row.del')];
+  rows.forEach((r) => { r.style.transition = 'none'; if (open) { r.style.height = '0px'; r.style.opacity = '0'; } });
+  void root.offsetWidth;
+  rows.forEach((r) => { r.style.transition = `height ${FOLD_MS}ms ease, opacity ${FOLD_MS}ms ease`; r.style.height = open ? '' : '0px'; r.style.opacity = open ? '' : '0'; });
+  return new Promise((res) => setTimeout(res, FOLD_MS));
+};
+async function applyDiffToggle() {
+  diffOn = !diffOn;
+  $('#diff').classList.toggle('on', diffOn);
+  const ref = level !== 'far' ? locate(level, ...toWorld(innerWidth / 2, innerHeight / 2)) : null;
+  if (!diffOn) { document.body.classList.remove('diff-on'); if (level !== 'far') await foldRows(LAYER[level].root, false); }
+  await buildLevel('mid', order);
+  await buildLevel('near', order);
+  LAYER[level].root.classList.remove('hidden');
+  if (ref) { const [wx, wy] = fromRef(level, ref); cam.tx = innerWidth / 2 - wx * cam.s; cam.ty = innerHeight / 2 - wy * cam.s; }
+  apply(); applyFocus(); scheduleLazy(); drawMini();
+  if (diffOn) { document.body.classList.add('diff-on'); if (level !== 'far') await foldRows(LAYER[level].root, true); }
+}
+if (hasDiff) { const b = $('#diff'); b.style.display = ''; b.classList.toggle('on', diffOn); b.addEventListener('click', toggleDiff); }
+
+// ---------------------------------------------------------------- start at System, fitted
+renderTour();
+setLevel('far');
+{ const t = fitTarget(); cam.s = t.s; cam.tx = innerWidth / 2 - t.cx * t.s; cam.ty = innerHeight / 2 - t.cy * t.s; }
+apply();
+window.__guide = { cam, GEO, layoutLevel, diffIdle: () => diffQueue, LAYER, zoom: zoomOf, flyToLine, zoomToCard, goLevel, fit, fitRefs, goStep, exitTour, zoomAround,
+  get level() { return level; }, setHover: (refs) => { hoverFocus = refs ? refsFocus(refs) : null; applyFocus(); } };
+})();
+</script>
+</body>
+</html>

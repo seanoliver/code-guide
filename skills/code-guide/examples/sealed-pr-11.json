@@ -1,0 +1,620 @@
+{
+  "title": "Return failed signup callbacks to signup",
+  "question": "How does a failed signup magic link end up back on `/signup` instead of `/login`?",
+  "mode": "pr",
+  "pr": {
+    "repo": "sealed",
+    "base": "514a1dbb3c3138b92e4f4526b0abe0885455e9bd^",
+    "number": 11
+  },
+  "repos": {
+    "sealed": "~/code/address-book"
+  },
+  "tldr": [
+    {
+      "text": "A hidden `flow` field on the form starts the round trip.",
+      "refs": [
+        "h-page",
+        "l1",
+        "h-hidden",
+        "l2",
+        "h-readflow"
+      ]
+    },
+    {
+      "text": "`authConfirmationUrl` stamps `flow` on `/auth/confirm` for email and Google.",
+      "refs": [
+        "h-otp",
+        "h-oauth",
+        "h-url",
+        "l3",
+        "l4",
+        "l10"
+      ]
+    },
+    {
+      "text": "The email link now builds on `.RedirectTo`, so `flow` survives the inbox.",
+      "refs": [
+        "h-tpl",
+        "l5",
+        "l6",
+        "l7"
+      ]
+    },
+    {
+      "text": "A failed callback redirects to `/${flow}?error=1`, not always `/login`.",
+      "refs": [
+        "h-confirm-flow",
+        "h-fail",
+        "l8",
+        "l9",
+        "h-test-url"
+      ]
+    },
+    {
+      "text": "Missing or unknown `flow` still falls back to `login`.",
+      "refs": [
+        "h-parse",
+        "h-proxy",
+        "l11"
+      ]
+    }
+  ],
+  "files": [
+    {
+      "id": "page",
+      "repo": "sealed",
+      "path": "src/app/signup/page.tsx",
+      "role": "Signup page, shows `?error=1`"
+    },
+    {
+      "id": "authpage",
+      "repo": "sealed",
+      "path": "src/components/auth-page.tsx",
+      "role": "Form posts `flow` + email"
+    },
+    {
+      "id": "actions",
+      "repo": "sealed",
+      "path": "src/app/auth/actions.ts",
+      "role": "Asks Supabase for the link"
+    },
+    {
+      "id": "flow",
+      "repo": "sealed",
+      "path": "src/lib/auth-flow.ts",
+      "role": "Parses `flow`, builds callback URL"
+    },
+    {
+      "id": "tpl",
+      "repo": "sealed",
+      "path": "supabase/templates/magic_link.html",
+      "role": "Magic-link email body"
+    },
+    {
+      "id": "confirm",
+      "repo": "sealed",
+      "path": "src/app/auth/confirm/route.ts",
+      "role": "Callback: verify or bounce"
+    },
+    {
+      "id": "proxy",
+      "repo": "sealed",
+      "path": "src/proxy.ts",
+      "role": "Root OAuth `code` fallback"
+    },
+    {
+      "id": "spec",
+      "repo": "sealed",
+      "path": "e2e/auth-callback.spec.ts",
+      "role": "Pins the failed round trip"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "sb",
+      "label": "Supabase Auth",
+      "role": "Issues OTP, verifies token"
+    },
+    {
+      "id": "inbox",
+      "label": "Email inbox",
+      "role": "Delivers the link (Mailpit locally)"
+    }
+  ],
+  "areas": [
+    {
+      "id": "repo",
+      "label": "address-book/",
+      "children": [
+        {
+          "id": "a-src",
+          "label": "src/",
+          "children": [
+            {
+              "id": "a-app",
+              "label": "app/",
+              "children": [
+                {
+                  "id": "a-signup",
+                  "label": "signup/",
+                  "files": [
+                    "page"
+                  ]
+                },
+                {
+                  "id": "a-auth",
+                  "label": "auth/",
+                  "files": [
+                    "actions"
+                  ]
+                },
+                {
+                  "id": "a-confirm",
+                  "label": "auth/confirm/",
+                  "files": [
+                    "confirm"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "a-comp",
+              "label": "components/",
+              "files": [
+                "authpage"
+              ]
+            },
+            {
+              "id": "a-lib",
+              "label": "lib/",
+              "files": [
+                "flow"
+              ]
+            }
+          ],
+          "files": [
+            "proxy"
+          ]
+        },
+        {
+          "id": "a-tpl",
+          "label": "supabase/templates/",
+          "files": [
+            "tpl"
+          ]
+        },
+        {
+          "id": "a-e2e",
+          "label": "e2e/",
+          "files": [
+            "spec"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ext",
+      "label": "External",
+      "external": true,
+      "files": [
+        "sb",
+        "inbox"
+      ]
+    }
+  ],
+  "highlights": [
+    {
+      "id": "h-page",
+      "file": "page",
+      "at": "return <AuthPage flow=\"signup\"",
+      "role": "plumbing",
+      "title": "Page fixes `flow` to `signup`",
+      "body": "The route itself is the flow. `?error=1` from the callback renders here as the alert."
+    },
+    {
+      "id": "h-alert",
+      "file": "authpage",
+      "at": "{error ? (",
+      "to": "Something went wrong. Please try again.",
+      "role": "supporting",
+      "title": "`?error=1` shows the alert",
+      "body": "Same alert on both pages, so the only visible difference is which page you land on."
+    },
+    {
+      "id": "h-hidden",
+      "file": "authpage",
+      "at": "<input type=\"hidden\" name=\"flow\" value={flow} />",
+      "nth": 1,
+      "role": "core",
+      "title": "Hidden `flow` field",
+      "body": "The flow starts as a form field. Everything after this keeps it alive across redirects."
+    },
+    {
+      "id": "h-readflow",
+      "file": "actions",
+      "at": "function readFlow(formData: FormData) {",
+      "to": "return parseAuthFlow(formData.get(\"flow\"));",
+      "role": "plumbing",
+      "title": "Shared parser replaces local enum",
+      "body": "The action and the callback now parse `flow` with one function, so they can't drift."
+    },
+    {
+      "id": "h-otp",
+      "file": "actions",
+      "at": "emailRedirectTo: authConfirmationUrl(process.env.APP_URL!, flow),",
+      "role": "core",
+      "title": "Email callback carries `flow`",
+      "body": "Supabase gets `/auth/confirm?flow=signup` as the redirect, and hands it back to the email template."
+    },
+    {
+      "id": "h-oauth",
+      "file": "actions",
+      "at": "options: { redirectTo: authConfirmationUrl(origin, flow) },",
+      "role": "supporting",
+      "title": "Google gets the same treatment",
+      "body": "OAuth returns to the same callback with `flow` set, so a failed Google signup also lands on `/signup`."
+    },
+    {
+      "id": "h-schema",
+      "file": "flow",
+      "at": "const authFlowSchema",
+      "role": "contract",
+      "title": "Only two flows",
+      "body": "`login` and `signup` are the only values that can reach a redirect path."
+    },
+    {
+      "id": "h-parse",
+      "file": "flow",
+      "at": "export function parseAuthFlow",
+      "to": "return parsed.success ? parsed.data : \"login\";",
+      "role": "supporting",
+      "flags": [
+        "gotcha"
+      ],
+      "title": "Anything unknown means `login`",
+      "body": "Old emails without `flow`, or a tampered value, still go to `/login`. No open redirect via `flow`."
+    },
+    {
+      "id": "h-url",
+      "file": "flow",
+      "at": "export function authConfirmationUrl",
+      "to": "return url.toString();",
+      "role": "core",
+      "title": "Builds `/auth/confirm?flow=...`",
+      "body": "Uses `URL` so the template can safely append `&token_hash=` after an existing query string."
+    },
+    {
+      "id": "h-tpl",
+      "file": "tpl",
+      "at": "{{ .RedirectTo }}&token_hash",
+      "role": "core",
+      "flags": [
+        "gotcha"
+      ],
+      "title": "Link built from `.RedirectTo`",
+      "body": "The old `.SiteURL` link ignored our redirect. The `&` relies on `?flow=` already being there; hosted templates need a sync."
+    },
+    {
+      "id": "h-confirm-flow",
+      "file": "confirm",
+      "at": "const flow = parseAuthFlow(searchParams.get(\"flow\"));",
+      "role": "core",
+      "title": "Callback reads `flow` back",
+      "body": "The value set on the signup form comes back here as a query param, after the email round trip."
+    },
+    {
+      "id": "h-verify",
+      "file": "confirm",
+      "at": "if (tokenHash && type.success) {",
+      "to": "} else if (code) {",
+      "role": "supporting",
+      "title": "Success still goes to `/dashboard`",
+      "body": "`flow` only changes the failure path. A good token or code ignores it."
+    },
+    {
+      "id": "h-fail",
+      "file": "confirm",
+      "at": "return NextResponse.redirect(new URL(`/${flow}?error=1`",
+      "role": "core",
+      "title": "Failure returns to the right page",
+      "body": "Was hardcoded `/login?error=1`. A new user with an expired link now sees the signup page again."
+    },
+    {
+      "id": "h-proxy",
+      "file": "proxy",
+      "at": "confirmationUrl.search = \"\";",
+      "to": "confirmationUrl.searchParams.set(\"code\", fallbackCode);",
+      "role": "supporting",
+      "flags": [
+        "gotcha"
+      ],
+      "title": "Root fallback drops `flow`",
+      "body": "When Supabase falls back to the Site URL, only `code` is forwarded, so a failure here lands on `/login`."
+    },
+    {
+      "id": "h-test-flow",
+      "file": "spec",
+      "at": "expect(link.searchParams.get(\"flow\")).toBe(\"signup\");",
+      "to": "link.searchParams.set(\"token_hash\", \"not-a-real-token-hash\");",
+      "role": "test",
+      "title": "Real email, broken token",
+      "body": "Reads the link from Mailpit, checks `flow=signup` survived, then corrupts the token to force failure."
+    },
+    {
+      "id": "h-test-url",
+      "file": "spec",
+      "at": "await expect(page).toHaveURL(/\\/signup\\?error=1$/);",
+      "role": "test",
+      "title": "Lands on `/signup?error=1`",
+      "body": "Pins the fix end to end: form, Supabase, email, callback, back to signup with the alert."
+    },
+    {
+      "id": "h-test-root",
+      "file": "spec",
+      "at": "await expect(page).toHaveURL(/\\/login\\?error=1$/);",
+      "role": "test",
+      "title": "Root fallback still expects `/login`",
+      "body": "Documents the intended fallback: a `code` with no `flow` fails to the login page."
+    }
+  ],
+  "links": [
+    {
+      "id": "l1",
+      "kind": "call",
+      "label": "renders signup form",
+      "from": {
+        "file": "page",
+        "at": "return <AuthPage flow=\"signup\""
+      },
+      "to": {
+        "file": "authpage",
+        "at": "export function AuthPage"
+      }
+    },
+    {
+      "id": "l2",
+      "kind": "call",
+      "label": "form action",
+      "from": {
+        "file": "authpage",
+        "at": "<form action={sendMagicLink}"
+      },
+      "to": {
+        "file": "actions",
+        "at": "export async function sendMagicLink"
+      }
+    },
+    {
+      "id": "l3",
+      "kind": "call",
+      "label": "builds callback URL",
+      "from": {
+        "file": "actions",
+        "at": "emailRedirectTo: authConfirmationUrl("
+      },
+      "to": {
+        "file": "flow",
+        "at": "export function authConfirmationUrl"
+      }
+    },
+    {
+      "id": "l4",
+      "kind": "http",
+      "label": "signInWithOtp",
+      "from": {
+        "file": "actions",
+        "at": "supabase.auth.signInWithOtp({"
+      },
+      "to": {
+        "node": "sb"
+      }
+    },
+    {
+      "id": "l5",
+      "kind": "data",
+      "label": "renders .RedirectTo",
+      "from": {
+        "node": "sb"
+      },
+      "to": {
+        "file": "tpl",
+        "at": "{{ .RedirectTo }}&token_hash"
+      }
+    },
+    {
+      "id": "l6",
+      "kind": "data",
+      "label": "sends magic link",
+      "from": {
+        "file": "tpl",
+        "at": "{{ .RedirectTo }}&token_hash"
+      },
+      "to": {
+        "node": "inbox"
+      }
+    },
+    {
+      "id": "l7",
+      "kind": "http",
+      "label": "GET /auth/confirm",
+      "from": {
+        "node": "inbox"
+      },
+      "to": {
+        "file": "confirm",
+        "at": "export async function GET"
+      }
+    },
+    {
+      "id": "l8",
+      "kind": "call",
+      "label": "parses flow",
+      "from": {
+        "file": "confirm",
+        "at": "const flow = parseAuthFlow("
+      },
+      "to": {
+        "file": "flow",
+        "at": "export function parseAuthFlow"
+      }
+    },
+    {
+      "id": "l13",
+      "kind": "http",
+      "label": "verifyOtp",
+      "from": {
+        "file": "confirm",
+        "at": "await supabase.auth.verifyOtp({"
+      },
+      "to": {
+        "node": "sb"
+      }
+    },
+    {
+      "id": "l9",
+      "kind": "http",
+      "label": "302 /signup?error=1",
+      "from": {
+        "file": "confirm",
+        "at": "return NextResponse.redirect(new URL(`/${flow}?error=1`"
+      },
+      "to": {
+        "file": "page",
+        "at": "export default async function SignupPage"
+      }
+    },
+    {
+      "id": "l10",
+      "kind": "http",
+      "label": "signInWithOAuth",
+      "from": {
+        "file": "actions",
+        "at": "supabase.auth.signInWithOAuth({"
+      },
+      "to": {
+        "node": "sb"
+      }
+    },
+    {
+      "id": "l11",
+      "kind": "http",
+      "label": "302 /auth/confirm",
+      "from": {
+        "file": "proxy",
+        "at": "return NextResponse.redirect(confirmationUrl);"
+      },
+      "to": {
+        "file": "confirm",
+        "at": "export async function GET"
+      }
+    },
+    {
+      "id": "l12",
+      "kind": "http",
+      "label": "reads link (Mailpit)",
+      "from": {
+        "file": "spec",
+        "at": "const link = new URL(await fetchMagicLink(email));"
+      },
+      "to": {
+        "node": "inbox"
+      }
+    }
+  ],
+  "tour": [
+    {
+      "title": "Signup renders the shared form",
+      "body": "`/signup` passes `flow=\"signup\"` into `AuthPage`. That string is what we need to bring back on failure.",
+      "focus": {
+        "file": "page",
+        "at": "return <AuthPage flow=\"signup\""
+      },
+      "links": [
+        "l1"
+      ]
+    },
+    {
+      "title": "A hidden field carries `flow`",
+      "body": "The magic-link form posts `flow` alongside the email to the `sendMagicLink` server action.",
+      "focus": {
+        "file": "authpage",
+        "at": "<input type=\"hidden\" name=\"flow\" value={flow} />",
+        "nth": 1
+      },
+      "links": [
+        "l2"
+      ]
+    },
+    {
+      "title": "The action stamps `flow` on the redirect",
+      "body": "`emailRedirectTo` is now `/auth/confirm?flow=signup`, sent to Supabase with the OTP request.",
+      "focus": {
+        "file": "actions",
+        "at": "emailRedirectTo: authConfirmationUrl(process.env.APP_URL!, flow),"
+      },
+      "links": [
+        "l3",
+        "l4"
+      ]
+    },
+    {
+      "title": "One helper builds the callback URL",
+      "body": "`authConfirmationUrl` sets `flow` with `searchParams`, used by both magic link and Google.",
+      "focus": {
+        "file": "flow",
+        "at": "url.searchParams.set(\"flow\", flow);"
+      },
+      "links": [
+        "l3"
+      ]
+    },
+    {
+      "title": "The email link reuses `.RedirectTo`",
+      "body": "Supabase renders our redirect URL into the email, so `flow=signup` survives the trip through the inbox.",
+      "focus": {
+        "file": "tpl",
+        "at": "{{ .RedirectTo }}&token_hash"
+      },
+      "links": [
+        "l5",
+        "l6"
+      ]
+    },
+    {
+      "title": "The click lands on `/auth/confirm`",
+      "body": "The callback reads `flow` back from the URL, through the same parser the action used.",
+      "focus": {
+        "file": "confirm",
+        "at": "const flow = parseAuthFlow(searchParams.get(\"flow\"));"
+      },
+      "links": [
+        "l7",
+        "l8"
+      ]
+    },
+    {
+      "title": "Failure goes back to `/signup`",
+      "body": "If `verifyOtp` fails, we redirect to `/${flow}?error=1` instead of the old hardcoded `/login`.",
+      "focus": {
+        "file": "confirm",
+        "at": "return NextResponse.redirect(new URL(`/${flow}?error=1`"
+      },
+      "links": [
+        "l13",
+        "l9"
+      ]
+    },
+    {
+      "title": "The e2e test pins the round trip",
+      "body": "Real form, real email from Mailpit, corrupted token, and an assertion that we end up on `/signup?error=1`.",
+      "focus": {
+        "file": "spec",
+        "at": "await expect(page).toHaveURL(/\\/signup\\?error=1$/);"
+      },
+      "links": [
+        "l12"
+      ]
+    }
+  ]
+}

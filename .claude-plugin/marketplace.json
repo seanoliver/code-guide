@@ -1,0 +1,15 @@
+{
+  "name": "code-guide",
+  "description": "code-guide: turn a pull request into a zoomable canvas of the code it touches.",
+  "owner": {
+    "name": "Sean Oliver",
+    "url": "https://seanoliver.dev"
+  },
+  "plugins": [
+    {
+      "name": "code-guide",
+      "source": "./",
+      "description": "Turn a pull request into a zoomable canvas of the code it touches."
+    }
+  ]
+}
