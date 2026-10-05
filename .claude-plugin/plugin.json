@@ -20,5 +20,6 @@
   ],
   "icon": "./assets/icon.png",
   "documentationUrl": "https://github.com/seanoliver/code-guide#readme",
-  "supportUrl": "https://github.com/seanoliver/code-guide/issues"
+  "supportUrl": "https://github.com/seanoliver/code-guide/issues",
+  "privacyPolicyUrl": "https://github.com/seanoliver/code-guide#data-and-privacy"
 }

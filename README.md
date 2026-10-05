@@ -137,6 +137,13 @@ Flags are `gotcha` (behaves differently from what a reader would assume) and `ch
 - The generated `guide.html` embeds the code it shows. When you open it, the browser loads elkjs from `cdn.jsdelivr.net` and highlight.js from `cdnjs.cloudflare.com`. Those requests fetch the libraries; no code or guide data is sent.
 - The agent reads your code the same way it does for any other task, through whichever model provider you already use.
 
+The plugin ships no hooks, binaries, or MCP servers. The skill has your agent run these commands locally, through the agent's own shell tool and its normal permission prompts:
+
+- `git fetch` and `git worktree add --detach`, to read the code without touching your checkout, then `git worktree remove` when done
+- `gh pr view`, in PR mode, to read the PR description
+- `python3 build.py`, to resolve anchors, compute the diff, and write `guide.html`
+- `python3 -m http.server`, to serve the guide locally for the browser check
+
 ## Limits
 
 - Guides with more than about 15 files or 5k lines get slow.
