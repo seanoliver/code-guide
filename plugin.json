@@ -3,15 +3,26 @@
   "name": "code-guide",
   "version": "1.0.0",
   "description": "Turn a pull request, or a question about how code works, into a zoomable canvas of the files involved, with callouts, a merged diff, and every line checked against git.",
-  "author": { "name": "Sean Oliver", "url": "https://seanoliver.dev" },
+  "author": {
+    "name": "Sean Oliver",
+    "url": "https://seanoliver.dev"
+  },
   "repository": "https://github.com/seanoliver/code-guide",
   "license": "MIT",
-  "keywords": ["code-review", "pull-request", "visualization", "codebase", "diff", "agent-skill"],
+  "keywords": [
+    "code-review",
+    "pull-request",
+    "visualization",
+    "codebase",
+    "diff",
+    "agent-skill"
+  ],
   "extensions": {
     "com.openai": {
       "interface": {
         "displayName": "code-guide",
-        "shortDescription": "Turn a pull request into a zoomable map of the code it touches."
+        "shortDescription": "Turn a pull request into a zoomable map of the code it touches.",
+        "composerIcon": "./assets/icon.png"
       }
     }
   }

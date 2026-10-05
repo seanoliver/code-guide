@@ -129,6 +129,14 @@ Each highlight gets one role, shown by color everywhere it appears:
 
 Flags are `gotcha` (behaves differently from what a reader would assume) and `changed` (added automatically in PR mode).
 
+## Data and privacy
+
+`code-guide` sends no telemetry and runs no server.
+
+- `build.py` reads files from your local checkout and runs `git diff` locally. It makes no network requests.
+- The generated `guide.html` embeds the code it shows. When you open it, the browser loads elkjs from `cdn.jsdelivr.net` and highlight.js from `cdnjs.cloudflare.com`. Those requests fetch the libraries; no code or guide data is sent.
+- The agent reads your code the same way it does for any other task, through whichever model provider you already use.
+
 ## Limits
 
 - Guides with more than about 15 files or 5k lines get slow.

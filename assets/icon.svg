@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <radialGradient id="g1" cx="18%" cy="18%" r="70%"><stop offset="0" stop-color="#2ea043" stop-opacity=".75"/><stop offset="1" stop-color="#2ea043" stop-opacity="0"/></radialGradient>
+    <radialGradient id="g2" cx="90%" cy="20%" r="65%"><stop offset="0" stop-color="#5aa9ff" stop-opacity=".6"/><stop offset="1" stop-color="#5aa9ff" stop-opacity="0"/></radialGradient>
+    <radialGradient id="g3" cx="75%" cy="100%" r="70%"><stop offset="0" stop-color="#c084fc" stop-opacity=".6"/><stop offset="1" stop-color="#c084fc" stop-opacity="0"/></radialGradient>
+    <filter id="glow"><feGaussianBlur stdDeviation="6" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="#0a1020"/>
+  <rect width="512" height="512" rx="112" fill="url(#g1)"/><rect width="512" height="512" rx="112" fill="url(#g2)"/><rect width="512" height="512" rx="112" fill="url(#g3)"/>
+  <rect x="1" y="1" width="510" height="510" rx="111" fill="none" stroke="#ffffff" stroke-opacity=".12" stroke-width="2"/>
+  <g fill="none" stroke-width="10" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M178 176 H252 Q270 176 270 194 V318 Q270 336 288 336 H334" stroke="#7ee787" filter="url(#glow)"/>
+    <path d="M178 256 H334" stroke="#5aa9ff" stroke-dasharray="18 16" stroke-opacity=".9"/>
+  </g>
+  <g>
+    <rect x="86" y="140" width="112" height="72" rx="16" fill="#111821" stroke="#7ee787" stroke-width="5"/>
+    <rect x="102" y="160" width="58" height="9" rx="4.5" fill="#e6edf3"/><rect x="102" y="180" width="40" height="7" rx="3.5" fill="#8b949e"/>
+    <rect x="180" y="152" width="6" height="48" rx="3" fill="#7ee787"/>
+    <rect x="86" y="220" width="112" height="72" rx="16" fill="#111821" stroke="#5aa9ff" stroke-width="5" stroke-opacity=".85"/>
+    <rect x="102" y="240" width="58" height="9" rx="4.5" fill="#e6edf3"/><rect x="102" y="260" width="40" height="7" rx="3.5" fill="#8b949e"/>
+    <rect x="314" y="300" width="112" height="72" rx="16" fill="#111821" stroke="#c084fc" stroke-width="5"/>
+    <rect x="330" y="320" width="58" height="9" rx="4.5" fill="#e6edf3"/><rect x="330" y="340" width="40" height="7" rx="3.5" fill="#8b949e"/>
+    <rect x="314" y="220" width="112" height="72" rx="16" fill="#111821" stroke="#f5a524" stroke-width="5" stroke-opacity=".9"/>
+    <rect x="330" y="240" width="58" height="9" rx="4.5" fill="#e6edf3"/><rect x="330" y="260" width="40" height="7" rx="3.5" fill="#8b949e"/>
+    <circle cx="334" cy="336" r="9" fill="#eafff0" filter="url(#glow)"/>
+  </g>
+</svg>
