@@ -164,6 +164,5 @@ skills/code-guide/
 ---
 
 <p align="center">
-  Made by <a href="https://seanoliver.dev">Sean Oliver</a> &nbsp;·&nbsp; <a href="https://x.com/seanoliver">@seanoliver</a> on X
-  <!-- author links: newsletter (to add) -->
+  Made by <a href="https://seanoliver.dev">Sean Oliver</a> &nbsp;·&nbsp; <a href="https://x.com/seanoliver">@seanoliver</a> on X &nbsp;·&nbsp; <a href="https://newsletter.seanoliver.dev">Newsletter</a>
 </p>
