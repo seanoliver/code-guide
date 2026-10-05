@@ -10,8 +10,8 @@
 </p>
 
 <p align="center">
-  <a href="docs/media/code-guide-launch.mp4"><b>▶ Watch the 44s video</b></a> &nbsp;·&nbsp;
-  <a href="docs/media/sealed-motion.mp4">Captioned walkthrough</a> &nbsp;·&nbsp;
+  <a href="https://github.com/seanoliver/code-guide/releases/download/v1.0.0/code-guide-launch.mp4"><b>▶ Watch the 44s video</b></a> &nbsp;·&nbsp;
+  <a href="https://github.com/seanoliver/code-guide/releases/download/v1.0.0/sealed-motion.mp4">Captioned walkthrough</a> &nbsp;·&nbsp;
   <a href="#install"><b>Install</b></a>
 </p>
 
